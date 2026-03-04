@@ -1,4 +1,6 @@
-﻿# 🛸 UAV-ARCHITECT-GLOBAL: ELITE COMMAND CENTER
+﻿![Teknofest 2026 UAV Banner](assets/banner.png)
+
+# 🛸 UAV-ARCHITECT-GLOBAL: ELİT KOMUTA MERKEZİ
 ### *Uluslararası İHA ve Otonom Sistemler Stratejik Mimarisi*
 
 <div align="center">
