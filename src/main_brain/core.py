@@ -1,13 +1,15 @@
-"""
-UAV-Architect-Global: Main Brain Core
--------------------------------------
-Bu modül, İHA'nın otonom karar verme ve görev mantığını yönetir.
-"""
+import cv2
+import numpy as np
 
 class ArchitectCore:
     def __init__(self):
         self.status = "INITIALIZING"
         self.mission_active = False
+        self.current_state = "SEARCH"
+        self.payloads_remaining = 2
+        # Technical constraints 2026
+        self.max_weight_kg = 4.0
+        self.setup_time_limit_min = 8.0
 
     def start_mission(self):
         print("[BRAIN] Mission sequence initiated...")

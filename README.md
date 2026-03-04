@@ -3,31 +3,30 @@
 
 <div align="center">
 
-![TEKNOFEST 2025](https://img.shields.io/badge/TEKNOFEST-2025-00F2FF?style=for-the-badge&logo=rocket&logoColor=white)
-![Category](https://img.shields.io/badge/KATEGORİ-ULUSLARARASI_İHA-FF0055?style=for-the-badge&logo=airbus&logoColor=white)
-![Status](https://img.shields.io/badge/STATUS-MASTERPIECE-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)
-![Architect](https://img.shields.io/badge/MİMAR-BAHATTİN_YUNUS_ÇETİN-blueviolet?style=for-the-badge&logo=azure-artifacts&logoColor=white)
+![TEKNOFEST 2026](https://img.shields.io/badge/TEKNOFEST-2026-EE1C25?style=for-the-badge&logo=rocket&logoColor=white)
+![Category](https://img.shields.io/badge/CATEGORY-INTL_UAV-00F2FF?style=for-the-badge&logo=airbus&logoColor=white)
+![Status](https://img.shields.io/badge/MISSION-READY-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)
+![Architecture](https://img.shields.io/badge/ARCH-ELITE-blueviolet?style=for-the-badge&logo=azure-artifacts&logoColor=white)
 
 ---
 
-"Göklerin otonom geleceği, satırlara dökülen mimari bir vizyonla başlar." / "The autonomous future of the skies starts with an architectural vision scripted in lines."
+"Göklerin otonom geleceği, mükemmel bir mimari ile başlar." / "The autonomous future of the skies starts with elite architecture."
 
-[English Version](#-english-overview) • [Sistem Mimarisi](#-sistem-mimarisi-tr) • [Teknoloji Yığını](#-teknoloji-yığını) • [Geliştirici Profil](#-geliştirici-profili)
+[2026 Mission Spec](docs/2026_SPEC_REQUIREMENTS.md) • [System Architecture](docs/ARCH_OVERVIEW.md) • [Competitor Analysis](docs/competitor_analysis.md)
 
 </div>
 
 ---
 
-## 🇹🇷 TÜRKÇE ÖZET
+**UAV-Architect-Global**, sadece bir yazılım koleksiyonu değil; 2026 TEKNOFEST standartlarında karmaşık görevleri yöneten **Yüksek Performanslı bir Stratejik Mimari Rehberidir**.
 
-**UAV-Architect-Global**, sadece bir yazılım koleksiyonu değil; karmaşık İHA görevlerini uçtan uca yöneten, yüksek performanslı bir **Sistem Mimari Rehberidir**. Bu platform, uluslararası standartlarda bir İHA'nın nasıl bir "uçan sunucu" (flying server) olarak kurgulanması gerektiğini teknik derinlikle ortaya koyar.
-
-### 🏛️ Sistem Mimarisi (TR)
-1. **Otonom Beyin:** YOLOv10 tabanlı hedef tespiti ve A* rota planlama.
-2. **Telemetri:** MavLink üzerinden gerçek zamanlı veri senkronizasyonu.
-3. **Aviyonik:** Donanım seviyesinde Failsafe (RTL) ve güç yönetimi.
-
----
+### ⚡ 2026 Mission Dashboard
+| Özellik | Detay |
+| :--- | :--- |
+| **Hedef Tespiti** | YOLOv10 + OpenCV Geometrik Analiz |
+| **Yük Mekanizması** | Dual-Color Hassas Bırakma Sistemi |
+| **Teknik Kısıt** | Max 4kg / 8 Dakika Kurulum Süresi |
+| **Mimari** | Observer-Executor (Jetson + Pixhawk) |
 
 ## 🇺🇸 ENGLISH OVERVIEW
 
@@ -111,9 +110,9 @@ graph LR
 
 <div align="center">
 
-*“Otonom uçuş, özgürlüğün kodlanmış halidir. Biz sadece o kodu mükemmelleştiriyoruz.”*
+*“Otonom uçuş, özgürlüğün kodlanmış halidir.”*
 
-**© 2025 Bahattin Yunus Çetin. Of, Trabzon.**
+**© 2026 Bahattin Yunus Çetin. Of, Trabzon.**
 
 
 </div>
