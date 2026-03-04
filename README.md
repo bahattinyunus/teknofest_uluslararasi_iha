@@ -166,7 +166,7 @@ Bu proje, sadece bir "kod deposu" değil, geliştiriciler için uçuş sabahı y
 
 *“Otonom uçuş, özgürlüğün dijital olarak kodlanmış halidir. Biz sadece o kodu mükemmelleştiriyoruz.”*
 
-**© 2026 Bahattin Yunus Çetin. Of, Trabzon.**
+**© 2026 Bahattin Yunus Çetin.**
 
 </div>
 
