@@ -28,7 +28,31 @@
 | **Teknik Kısıt** | Max 4kg / 8 Dakika Kurulum Süresi |
 | **Mimari** | Observer-Executor (Jetson + Pixhawk) |
 
-## 🇺🇸 GENEL BAKIŞ
+---
+
+## � GÖREV STRATEJİSİ (MISSION STRATEGY)
+
+2026 şartnamesindeki dual-payload (çift yük) ve farklı geometrik hedefler (altıgen/üçgen) için geliştirilen strateji üç ana aşamadan oluşur:
+
+1.  **Geniş Alan Taraması (Wide-Scan):** İHA, belirlenen irtifada (AGL 30-50m) GPS tabanlı otonom rota izleyerek hedef alanını tarar.
+2.  **Hassas Kilitlenme (Precision Lock):** Hedef tespit edildiğinde (YOLOv10), İHA "Visual Servoing" moduna geçer. Kamera verisi kullanılarak hedef dikey eksende merkezlenir.
+3.  **Dinamik Bırakma (Dynamic Drop):** İrtifa ve anlık hız verileri kullanılarak `core.py` içerisindeki balistik şablon tetiklenir ve servo mekanizması aktive edilir.
+
+---
+
+## 💻 GELİŞMİŞ TEKNOLOJİ YIĞINI
+
+| Katman | Teknoloji | Amaç |
+| :--- | :--- | :--- |
+| **Donanım** | NVIDIA Jetson Orin Nano | Kenar (Edge) Yapay Zeka İşleme |
+| **Uçuş Kontrol** | Pixhawk 6C + ArduPilot | Gerçek Zamanlı Stabilizasyon |
+| **Algılama** | YOLOv10 + TensorRT | Gerçek Zamanlı Nesne Tespiti (60+ FPS) |
+| **Haberleşme** | MAVLink + Micro-ROS | Güvenilir Veri Senkronizasyonu |
+| **Simülasyon** | Gazebo / AirSim | Risk Bilgisiz Test Ortamı |
+
+---
+
+## �🇺🇸 GENEL BAKIŞ
 
 **UAV-Architect-Global**, uçtan uca karmaşık İHA görevlerini yönetmek için tasarlanmış yüksek performanslı bir **Sistem Mimari Rehberidir**. İHA'yı bir "Uçan Sunucu" (Flying Server) olarak ele alır; gelişmiş yapay zeka çıkarımlarını güvenilir uçuş kontrol protokolleriyle entegre eder.
 
@@ -88,14 +112,33 @@ graph LR
 
 ## 🚀 BAŞLARKEN (HIZLI BAŞLANGIÇ)
 
-1. **Mimariyi Klonlayın:**
-   ```bash
-   git clone https://github.com/bahattinyunus/teknofest_uluslararasi_iha.git
-   ```
-2. **Beyin Modülünü İnceleyin:**
-   [src/main_brain/core.py](file:///g:/Di%C4%9Fer%20bilgisayarlar/Diz%C3%BCst%C3%BC%20Bilgisayar%C4%B1m/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/src/main_brain/core.py) içerisindeki görev mantığı şablonunu kontrol edin.
-3. **Mimarisi Analiz Edin:**
-   [Sistem Derin Dalış](file:///g:/Di%C4%9Fer%20bilgisayarlar/Diz%C3%BCst%C3%BC%20Bilgisayar%C4%B1m/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/docs/ARCH_OVERVIEW.md) dökümanını okuyun.
+### 1. Mimariyi Klonlayın
+```bash
+git clone https://github.com/bahattinyunus/teknofest_uluslararasi_iha.git
+cd teknofest_uluslararasi_iha
+```
+
+### 2. Bağımlılıkları Kurun
+Sistemin çalışması için OpenCV ve MAVProxy gereklidir:
+```bash
+pip install opencv-python numpy pymavlink
+```
+
+### 3. Simülasyon Testi
+SITL (Software In The Loop) modunda çalıştırmak için:
+```bash
+python -m src.main_brain.core --mode simulation
+```
+
+---
+
+## 🛠️ GELİŞTİRİCİ DENEYİMİ (DX) & HATA AYIKLAMA
+
+Proje, geliştiricilerin sistemi hızlıca debug edebilmesi için gelişmiş loglama ve görselleştirme araçları sunar:
+
+-   **Log Sistemi:** `logs/` dizini altında her uçuş için detaylı telemetri kayıtları tutulur.
+-   **Kamera Testi:** `scripts/camera_check.py` ile görüntü işleme pipeline'ı uçuş yapmadan test edilebilir.
+-   **MavLink Görüntüleyici:** `telemetry/visualizer.py` ile anlık paket akışı izlenebilir.
 
 ---
 
@@ -107,6 +150,7 @@ graph LR
 *   🌍 **Konum:** Trabzon, Türkiye
 *   🔗 **LinkedIn:** [linkedin.com/in/bahattinyunus](https://www.linkedin.com/in/bahattinyunus/)
 *   💻 **GitHub:** [github.com/bahattinyunus](https://github.com/bahattinyunus)
+*   📧 **İletişim:** [E-posta Gönder](mailto:bahattinyunuscetin@gmail.com)
 
 ---
 
