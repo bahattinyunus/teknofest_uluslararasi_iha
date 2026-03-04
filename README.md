@@ -4,15 +4,15 @@
 <div align="center">
 
 ![TEKNOFEST 2026](https://img.shields.io/badge/TEKNOFEST-2026-EE1C25?style=for-the-badge&logo=rocket&logoColor=white)
-![Category](https://img.shields.io/badge/CATEGORY-INTL_UAV-00F2FF?style=for-the-badge&logo=airbus&logoColor=white)
-![Status](https://img.shields.io/badge/MISSION-READY-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)
-![Architecture](https://img.shields.io/badge/ARCH-ELITE-blueviolet?style=for-the-badge&logo=azure-artifacts&logoColor=white)
+![Kategori](https://img.shields.io/badge/KATEGORİ-ULUSLARARASI_İHA-00F2FF?style=for-the-badge&logo=airbus&logoColor=white)
+![Durum](https://img.shields.io/badge/GÖREV-HAZIR-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)
+![Mimari](https://img.shields.io/badge/MİMARİ-ELİT-blueviolet?style=for-the-badge&logo=azure-artifacts&logoColor=white)
 
 ---
 
-"Göklerin otonom geleceği, mükemmel bir mimari ile başlar." / "The autonomous future of the skies starts with elite architecture."
+"Göklerin otonom geleceği, mükemmel bir mimari ile başlar."
 
-[2026 Mission Spec](docs/2026_SPEC_REQUIREMENTS.md) • [System Architecture](docs/ARCH_OVERVIEW.md) • [Competitor Analysis](docs/competitor_analysis.md)
+[2026 Görev Şartnamesi](docs/2026_SPEC_REQUIREMENTS.md) • [Sistem Mimarisi](docs/ARCH_OVERVIEW.md) • [Rakip Analizi](docs/competitor_analysis.md)
 
 </div>
 
@@ -28,36 +28,36 @@
 | **Teknik Kısıt** | Max 4kg / 8 Dakika Kurulum Süresi |
 | **Mimari** | Observer-Executor (Jetson + Pixhawk) |
 
-## 🇺🇸 ENGLISH OVERVIEW
+## 🇺🇸 GENEL BAKIŞ
 
-**UAV-Architect-Global** is a high-performance **System Architecture Guide** designed to manage complex UAV missions from end-to-end. It treats the UAV as a "Flying Server," integrating advanced AI inference with reliable flight control protocols.
+**UAV-Architect-Global**, uçtan uca karmaşık İHA görevlerini yönetmek için tasarlanmış yüksek performanslı bir **Sistem Mimari Rehberidir**. İHA'yı bir "Uçan Sunucu" (Flying Server) olarak ele alır; gelişmiş yapay zeka çıkarımlarını güvenilir uçuş kontrol protokolleriyle entegre eder.
 
-### 🏗️ Master Architecture (EN)
-The repository is structured into an "Elite Core" for maximum modularity:
-- **`src/main_brain/`**: AI mission logic and decision making.
-- **`src/telemetry/`**: GCS and MavLink communication bridge.
-- **`src/avionics/`**: Hardware abstraction and emergency protocols.
+### 🏗️ Ana Mimari
+Depo, maksimum modülerlik için "Elit Çekirdek" yapısında kurgulanmıştır:
+- **`src/main_brain/`**: Yapay zeka görev mantığı ve karar alma.
+- **`src/telemetry/`**: Yer Kontrol İstasyonu (GCS) ve MavLink haberleşme köprüsü.
+- **`src/avionics/`**: Donanım soyutlama ve acil durum protokolleri.
 
 ---
 
-## 📊 SYSTEM INTEGRATION FLOW
+## 📊 SİSTEM ENTEGRASYON AKIŞI
 
 ```mermaid
 graph LR
-    subgraph "DATA ACQUISITION"
-        CAM[4K Camera] -- CSI/USB --> GPU[NVIDIA Jetson]
-        SEN[IMU/Baro] -- Internal Bus --> FC[Flight Controller]
+    subgraph "VERİ EDİNİMİ"
+        CAM[4K Kamera] -- CSI/USB --> GPU[NVIDIA Jetson]
+        SEN[IMU/Baro] -- Dahili Veri Yolu --> FC[Uçuş Kontrol Kartı]
     end
 
-    subgraph "INTELLIGENCE LAYER"
-        GPU -- "YOLOv10 / TensorRT" --> AI[Object Detection]
-        AI -- "Mission Logic" --> DEC[Decision Engine]
+    subgraph "ZEKA KATMANI"
+        GPU -- "YOLOv10 / TensorRT" --> AI[Nesne Tespiti]
+        AI -- "Görev Mantığı" --> DEC[Karar Mekanizması]
     end
 
-    subgraph "ACTUATION & TELEMETRY"
+    subgraph "EYLEM VE TELEMETRİ"
         DEC -- MavLink --> FC
-        FC -- PWM --> PWM[Motors/Servos]
-        FC -- RF --> GCS[Ground Station]
+        FC -- PWM --> PWM[Motorlar/Servolar]
+        FC -- RF --> GCS[Yer Kontrol İstasyonu]
     end
 
     style GPU fill:#76B900,stroke:#333,stroke-width:2px
@@ -67,42 +67,44 @@ graph LR
 
 ---
 
-## 🛠️ REPO STRUCTURE (MASTERPIECE LEVEL)
+## 🛠️ DEPO YAPISI (PROJE MİMARİSİ)
 
 ```text
-├── .github/                # Issue & PR templates
-├── assets/                 # High-res diagrams & resources
-├── docs/                   # Technical whitepapers (ARCH_OVERVIEW.md)
-├── src/                    # The "Elite Core"
-│   ├── main_brain/        # AI & Mission Logic
-│   ├── telemetry/         # Communication Hub
-│   └── avionics/          # Hardware Control
-├── CONTRIBUTING.md         # Professional guide
-├── LICENSE                 # MIT Open Source
-└── README.md               # The Command Center
+├── .github/                # Issue ve PR şablonları
+├── assets/                 # Yüksek çözünürlüklü görseller
+├── docs/                   # Teknik dokümanlar
+│   ├── 2026_SPEC_REQUIREMENTS.md # 2026 Kuralları ve Hedefleri
+│   ├── ARCH_OVERVIEW.md    # Sistem Mimari Detayları
+├── src/                    # "Elit Çekirdek" kaynak kodlar
+│   ├── main_brain/        # Yapay Zeka ve Görev Mantığı
+│   ├── telemetry/         # Haberleşme Merkezi
+│   └── avionics/          # Donanım Kontrol
+├── CONTRIBUTING.md         # Katkı sağlama rehberi
+├── LICENSE                 # MIT Lisansı
+└── README.md               # Komuta Merkezi
 ```
 
 ---
 
-## 🚀 GETTING STARTED (QUICK START)
+## 🚀 BAŞLARKEN (HIZLI BAŞLANGIÇ)
 
-1. **Clone the Architect Core:**
+1. **Mimariyi Klonlayın:**
    ```bash
    git clone https://github.com/bahattinyunus/teknofest_uluslararasi_iha.git
    ```
-2. **Explore the Brain:**
-   Check [src/main_brain/core.py](file:///c:/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/src/main_brain/core.py) for the mission logic template.
-3. **Analyze the Architecture:**
-   Read the [System Deep Dive](file:///c:/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/docs/ARCH_OVERVIEW.md).
+2. **Beyin Modülünü İnceleyin:**
+   [src/main_brain/core.py](file:///g:/Di%C4%9Fer%20bilgisayarlar/Diz%C3%BCst%C3%BC%20Bilgisayar%C4%B1m/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/src/main_brain/core.py) içerisindeki görev mantığı şablonunu kontrol edin.
+3. **Mimarisi Analiz Edin:**
+   [Sistem Derin Dalış](file:///g:/Di%C4%9Fer%20bilgisayarlar/Diz%C3%BCst%C3%BC%20Bilgisayar%C4%B1m/github%20repolar%C4%B1m/teknofest_uluslararasi_iha/docs/ARCH_OVERVIEW.md) dökümanını okuyun.
 
 ---
 
-## 👨‍💻 DEVELOPER PROFILE
+## 👨‍💻 GELİŞTİRİCİ PROFİLİ
 
 ### **Bahattin Yunus Çetin**
-*IT Architect Candidate | Aerospace Visionary*
+*BT Mimarı Adayı | Havacılık Vizyoneri*
 
-*   🌍 **Location:** Trabzon, Turkey
+*   🌍 **Konum:** Trabzon, Türkiye
 *   🔗 **LinkedIn:** [linkedin.com/in/bahattinyunus](https://www.linkedin.com/in/bahattinyunus/)
 *   💻 **GitHub:** [github.com/bahattinyunus](https://github.com/bahattinyunus)
 

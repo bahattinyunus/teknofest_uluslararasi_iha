@@ -1,17 +1,17 @@
-# System Architecture Deep Dive
+# Sistem Mimarisi Derin Dalış
 
-## High-Level Vision
-The **UAV-Architect-Global** system is designed based on the **Observer-Executor** pattern. The companion computer (Observer) processes high-bandwidth data (video, LiDAR), while the flight controller (Executor) handles real-time stabilization.
+## Üst Düzey Vizyon
+**UAV-Architect-Global** sistemi, **Observer-Executor** (Gözlemci-Yürütücü) modeli üzerine inşa edilmiştir. Yardımcı bilgisayar (Gözlemci), yüksek bant genişlikli verileri (video, LiDAR) işlerken, uçuş kontrol kartı (Yürütücü) gerçek zamanlı stabilizasyonu yönetir.
 
-## Data Flow
-1. **Sensors** transmit RAW data to the CPU/GPU.
-2. **AI Inference** (YOLO) identifies targets.
-3. **Mission Logic** determines if parameters for payload release are met.
-4. **MavLink Commands** are sent to the Pixhawk to adjust pitch/yaw or trigger servos.
+## Veri Akışı
+1. **Sensörler** RAW verileri CPU/GPU'ya iletir.
+2. **Yapay Zeka Çıkarımı** (YOLO) hedefleri belirler.
+3. **Görev Mantığı**, yük bırakma parametrelerinin karşılanıp karşılanmadığını belirler.
+4. **MavLink Komutları**, yunuslama/sapma (pitch/yaw) düzeltmeleri yapmak veya servoları tetiklemek için Pixhawk'a gönderilir.
 
-## Integration Protocols
-- **Baud Rate:** 57600/921600 (Depending on distance).
-- **Latency Target:** < 50ms for end-to-end processing.
+## Entegrasyon Protokolleri
+- **Baud Rate:** 57600/921600 (Mesafeye göre değişken).
+- **Gecikme Hedefi:** Uçtan uca işleme için < 50ms.
 
 ---
-*Prepared by Bahattin Yunus Çetin*
+*Hazırlayan: Bahattin Yunus Çetin*

@@ -1,29 +1,29 @@
-# Contributing to UAV-Architect-Global
+# UAV-Architect-Global Projesine Katkı Sağlama
 
-Thank you for your interest in contributing to the **UAV-Architect-Global** project! We welcome contributions from developers, researchers, and UAV enthusiasts who want to enhance the future of autonomous flight systems.
+**UAV-Architect-Global** projesine gösterdiğiniz ilgi için teşekkür ederiz! Otonom uçuş sistemlerinin geleceğini birlikte inşa etmek için geliştiricilerden, araştırmacılardan ve İHA meraklılarından gelecek katkıları bekliyoruz.
 
-## How to Contribute
+## Nasıl Katkı Sağlanır?
 
-### 1. Reporting Bugs
-- Use the GitHub Issue Tracker to report bugs.
-- Provide a clear description of the issue and steps to reproduce.
+### 1. Hata Bildirimi
+- Hataları bildirmek için GitHub Issue (Sorun) takipçisini kullanın.
+- Sorunun net bir açıklamasını ve yeniden üretme adımlarını sağlayın.
 
-### 2. Suggesting Enhancements
-- If you have ideas for new features or architectural improvements, open an issue to discuss them.
+### 2. Geliştirme Önerileri
+- Yeni özellikler veya mimari iyileştirmeler için fikirleriniz varsa, bunları tartışmak için bir "Issue" açın.
 
-### 3. Pull Requests
-- Fork the repository.
-- Create a new branch for your feature or fix.
-- Ensure your code follows the project's architectural principles.
-- Submit a pull request with a detailed description of your changes.
+### 3. Pull Request (Çekme İstekleri)
+- Depoyu forklayın.
+- Yeni özelliğiniz veya düzeltmeniz için yeni bir dal (branch) oluşturun.
+- Kodunuzun projenin mimari ilkelerine uygun olduğundan emin olun.
+- Değişikliklerinizin detaylı açıklamasını içeren bir "Pull Request" gönderin.
 
-## Architectural Principles
-- **Efficiency:** Algorithms must be optimized for real-time execution on embedded systems.
-- **Modularity:** Keep system components (CV, PID, GCS) decoupled.
-- **Safety:** Always prioritize failsafe mechanisms (RTL, Geo-fencing).
+## Mimari İlkeler
+- **Verimlilik:** Algoritmalar, gömülü sistemlerde gerçek zamanlı çalışma için optimize edilmelidir.
+- **Modülerlik:** Sistem bileşenlerini (CV, PID, GCS) birbirinden bağımsız (decoupled) tutun.
+- **Güvenlik:** Her zaman failsafe mekanizmalarına (RTL, Geo-fencing) öncelik verin.
 
-## Professional Conduct
-- Be respectful and collaborative in all interactions.
+## Profesyonel Davranış
+- Tüm etkileşimlerde saygılı ve işbirlikçi olun.
 
 ---
-*“Building the sky's intelligence, one line of code at a time.”*
+*“Gökyüzünün zekasını, her seferinde bir satır kodla inşa ediyoruz.”*
