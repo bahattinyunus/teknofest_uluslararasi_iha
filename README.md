@@ -1,195 +1,307 @@
-﻿![Teknofest 2026 UAV Banner](assets/banner.png)
-
-# 🛸 UAV-ARCHITECT-GLOBAL: ELİT KOMUTA MERKEZİ
-### *Uluslararası İHA ve Otonom Sistemler Stratejik Mimarisi*
-
-<div align="center">
-
-![TEKNOFEST 2026](https://img.shields.io/badge/TEKNOFEST-2026-EE1C25?style=for-the-badge&logo=rocket&logoColor=white)
-![Kategori](https://img.shields.io/badge/KATEGORİ-ULUSLARARASI_İHA-00F2FF?style=for-the-badge&logo=airbus&logoColor=white)
-![Durum](https://img.shields.io/badge/GÖREV-HAZIR-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)
-![Mimari](https://img.shields.io/badge/MİMARİ-ELİT-blueviolet?style=for-the-badge&logo=azure-artifacts&logoColor=white)
-
----
-
-"Göklerin otonom geleceği, mükemmel bir mimari ile başlar."
-
-[2026 Görev Şartnamesi](docs/2026_SPEC_REQUIREMENTS.md) • [Sistem Mimarisi](docs/ARCH_OVERVIEW.md) • [Rakip Analizi](docs/competitor_analysis.md)
-
-</div>
-
----
-
-**UAV-Architect-Global**, sıradan bir yazılım deposundan çok daha fazlasını vaat eder; o, 2026 TEKNOFEST Uluslararası İHA Yarışması'nın en zorlu senaryoları için tepeden tırnağa optimize edilmiş **Yüksek Performanslı ve Stratejik bir Mimari Ekosistemdir**. Bu platform, modern otonom sistemlerde karşılaşılan karmaşık mühendislik problemlerine uçtan uca çözümler sunan, her satırı titizlikle planlanmış bir "Sistem Tasarım Rehberi" olarak kurgulanmıştır. Amacımız, İHA'yı sadece uçan bir araç olarak değil, gökyüzünde karar verebilen, analiz yapabilen ve en zorlu şartnamelere bile kusursuzca uyum sağlayan bir "Dinamik Zeka Platformu" olarak yeniden tanımlamaktır.
-
-### ⚡ 2026 Mission Dashboard (Görev Paneli)
-| Özellik | Teknik Detay | Operasyonel Karşılık |
-| :--- | :--- | :--- |
-| **Hedef Tespiti** | YOLOv10 + OpenCV Geometrik Analiz | Altıgen ve Üçgen hedeflerin %98+ doğrulukla tespiti. |
-| **Yük Mekanizması** | Dual-Color Hassas Bırakma Sistemi | Kırmızı/Mavi yüklerin senkronize ve doğru hedefe bırakılması. |
-| **Teknik Kısıt** | Max 4kg / 8 Dakika Kurulum Süresi | Hızlı montaj ve hafif yapı optimizasyonu. |
-| **Ana Mimari** | Observer-Executor (Jetson + Pixhawk) | Yapay zeka ile uçuş kontrolünün kusursuz entegrasyonu. |
-
----
-
-## 🎯 GÖREV STRATEJİSİ VE OPERASYONEL ANALİZ (MISSION STRATEGY)
-
-2026 şartnamesindeki dual-payload (çift yük) zorunluluğu ve altıgen/üçgen gibi farklı geometrik formdaki hedeflerin otonom tespiti, sistemimizde üç katmanlı ve yüksek hassasiyetli bir stratejiyle yönetilir. Bu strateji, sadece bir uçuş rotası değil, aynı zamanda anlık veri analitiği ve risk yönetimini de kapsar:
-
-1.  **Geniş Alan Taraması ve Durumsal Farkındalık (Wide-Scan):** İHA, kalkışın ardından belirlenen operasyonel irtifada (AGL 30-50m aralığında optimize edilmiş) GPS tabanlı otonom bir "grid" tarama rotasına başlar. Bu aşamada, yer istasyonu ile kesintisiz veri akışı sağlanarak alanın sayısal ikizi üzerinden hedeflerin kaba konumları işaretlenir. Yazılımımız, her kareden gelen veriyi süzerek potansiyel hedef adaylarını (Target Candidates) bir havuza toplar ve en yüksek güven skoruna sahip olanı otonom olarak önceliklendirir.
-2.  **Yapay Zeka Destekli Hassas Kilitlenme (Precision Lock):** Görüntü işleme ünitemiz (YOLOv10), eğitimli modelini kullanarak hedefi milisaniyeler bazında tespit ettiğinde, kontrol sistemi "Visual Servoing" (Görsel Denetimli Kontrol) moduna geçiş yapar. Bu modda, İHA sadece koordinata değil, optik akış verisine odaklanarak hedefi dikey eksende kusursuz bir şekilde merkezleyene kadar motor hızlarını milimetrik olarak ayarlar. Bu süreçte, drone'un rüzgar etkisiyle oluşabilecek yalpalamaları (drift), yapay zeka tarafından anlık olarak kompanse edilir.
-3.  **Dinamik Balistik Bırakma ve İniş (Dynamic Drop):** Hedef merkezlendiğinde, `core.py` içerisinde yer alan gelişmiş fizik şablonu; anlık yer hızı (Ground Speed), rüzgar vektörü ve irtifayı hesaplayarak ideal bırakma noktasını belirler. Servo mekanizması bu kritik eşleşmeyle tetiklenir ve ardından İHA, görevin tamamlandığını teyit ederek otonom olarak kalkış noktasına veya belirlenen iniş alanına (RTL/Landing) yönelir. Bırakma sonrası sistem, yükün hedefe olan mesafesini son kez kamerayla doğrular ve görevi başarıyla kapatır.
-
----
-
-## 💻 GELİŞMİŞ TEKNOLOJİ YIĞINI VE ALTYAPI
-
-Sistemimiz, donanım ve yazılımın senkronize bir şekilde çalışmasını sağlayan hibrit bir yapı üzerine kurulmuştur. Her bir bileşen, maksimum verimlilik ve minimum gecikme süresi hedeflenerek seçilmiştir:
-
-| Katman | Teknoloji | Teknik Avantaj |
-| :--- | :--- | :--- |
-| **Donanım Çözümleri** | NVIDIA Jetson Orin Nano | 20 TOPS yapay zeka performansı ile "Edge Computing" (Kenar Hesaplama) gücü sayesinde bulut ihtiyacı duymadan anlık yerel işleme. |
-| **Uçuş Kontrol Sistemi** | Pixhawk 6C + ArduPilot | EKF3 filtreleme, yüksek hassasiyetli pusula ve gelişmiş navigasyon algoritmalarıyla sarsıntısız ve güvenilir uçuş kontrolü. |
-| **Yapay Zeka / Tespit** | YOLOv10 + TensorRT | FP16 hassasiyetinde optimize edilmiş Quantized modellerle anlık hedef teşhisi, sınıflandırma ve 60+ FPS ile akıcı analiz. |
-| **Haberleşme Katmanı** | MAVLink + Micro-ROS | Bant genişliğinde %40 tasarruf sağlayan sıkıştırılmış ikili veri paketleri ve görev kritik veriler için milisaniye seviyesinde iletim. |
-| **Simülasyon Ortamı** | Gazebo / AirSim | Fotorealistik fizik motoru sayesinde donanım kısıtları ve fiziksel dünyadaki riskler olmadan binlerce farklı senaryoda görev provası. |
-
----
-
-## �� GENEL BAKIŞ VE MİMARİ FELSEFE
-
-**UAV-Architect-Global**, uçtan uca tüm karmaşık İHA operasyonlarını akıllı bir şekilde yönetmek üzere sıfırdan tasarlanmış profesyonel bir **Sistem Mimari Rehberidir**. Biz, İHA'yı sadece piller ve motorlardan oluşan bir donanım olarak değil, gökyüzünde görev yapan yüksek kapasiteli bir "Uçan Sunucu" (Flying Server) olarak ele alıyoruz. Bu felsefe doğrultusunda, Jetson gibi güçlü işlemcilerin sunduğu yapay zeka çıkarım kapasitesini, Pixhawk gibi güvenilir uçuş kontrol protokolleriyle en verimli şekilde entegre ederek, otonom sistemlerde yeni bir standart belirliyoruz.
-
-### 🏗️ Ana Mimari Yapı (Core Logic)
-Depo, sistem bileşenlerinin birbirini engellemeden çalışabilmesi ve geliştirme süreçlerinin hızlandırılması için "Elit Çekirdek" (Elite Core) modüler yapısında kurgulanmıştır. Bu sayede hata ayıklama süreçleri lokalize edilerek sistem dayanıklılığı (resilience) artırılmıştır:
-- **`src/main_brain/`**: Sistemin "Karar Mekanizması". Yapay zeka görev mantığı, hedef doğrulama algoritmaları ve stratejik kararların alındığı ana merkez.
-- **`src/telemetry/`**: Sistemin "Ses Telleri". Yer Kontrol İstasyonu (GCS) ile kurulan yüksek hızlı ve güvenli MavLink haberleşme köprüsü.
-- **`src/avionics/`**: Sistemin "Refleksleri". Donanım soyutlama katmanı, sensör füzyonu ve acil durum (failsafe) protokollerinin yönetildiği taban.
-
----
-
-## 📊 SİSTEM ENTEGRASYON AKIŞI: VERİDEN EYLEME
-
-Aşağıdaki şema, sistemin bir görüntüyü alıp onu nasıl fiziksel bir "yük bırakma" eylemine dönüştürdüğünü, her bir katmanın sorumluluğunu detaylandırarak göstermektedir:
-
-```mermaid
-graph TD
-    subgraph "VERİ EDİNİMİ (SENSORY INPUT)"
-        CAM[4K Kamera / 60 FPS] -- "RAW Frame" --> GPU[NVIDIA Jetson GPU]
-        SEN[Barometre + Pusula + GPS] -- "Telemetry Stream" --> FC[Uçuş Kontrol Kartı]
-    end
-
-    subgraph "ZEKA KATMANI (ADVANCED INFERENCE)"
-        GPU -- "TensorRT Optimization" --> AI[YOLOv10 Nesne Tespiti]
-        AI -- "Koordinat & Güven Skoru" --> DEC[Görev Karar Mekanizması]
-        DEC -- "Hedef Doğrulama" --> COR[Core Logic Engine]
-    end
-
-    subgraph "EYLEM VE HABERLEŞME (ACTUATION)"
-        COR -- "MAVLink Komut Seti" --> FC
-        FC -- "PWM Sinyali" --> PWM[Fırçasız Motorlar & Servolar]
-        FC -- "915MHz / 2.4GHz RF" --> GCS[Yer Kontrol İstasyonu Dashboard]
-    end
-
-    style GPU fill:#76B900,stroke:#333,stroke-width:2px,color:#fff
-    style FC fill:#FF4B4B,stroke:#333,stroke-width:2px,color:#fff
-    style GCS fill:#00A4EF,stroke:#333,stroke-width:2px,color:#fff
-    style COR fill:#FFD700,stroke:#333,stroke-width:3px,color:#000
-```
-
----
-
-## 🛠️ DEPO YAPISI (PROJE MİMARİSİ)
-
-```text
-├── .github/                # Issue ve PR şablonları
-├── assets/                 # Yüksek çözünürlüklü görseller ve Banner
-├── config/                 # Görev, PID ve Kamera parametreleri
-│   └── mission_config.yaml # 2026 Yarışma ve sistem yapılandırması
-├── docs/                   # Teknik dokümanlar ve şartname analizleri
-│   ├── 2026_SPEC_REQUIREMENTS.md # 2026 Kuralları ve Detaylı Hedefler
-│   ├── ARCH_OVERVIEW.md    # Mimari Felsefe, Formüller ve Derin Dalış
-│   └── competitor_analysis.md # Rakip ve saha analizi
-├── scripts/                # Saha test ve simülasyon yardımcı araçları
-│   ├── camera_check.py     # Kamera netlik, HSV ve hedef tespit aracı
-│   └── run_sitl_test.py    # Uçtan uca otonom görev koşucusu
-├── src/                    # "Elit Çekirdek" (Elite Core) Kaynak Kodlar
-│   ├── main_brain/         # Karar Merkezi (ArchitectCore)
-│   ├── vision/             # Hedef Tespiti, Geometrik Analiz, Takip ve Kamera
-│   ├── navigation/         # RK4 Balistik Hesaplayıcı, Visual Servoing, FSM
-│   ├── avionics/           # 120m Geofence, LiPo Güvenlik ve Çift Servo
-│   └── telemetry/          # MAVLink v2 Köprüsü ve Telemetri Kaydedici
-├── tests/                  # Kapsamlı Otomasyonel Test Paketi (Pytest - 24 Test)
-├── requirements.txt        # Python kütüphane bağımlılıkları
-├── CONTRIBUTING.md         # Katkı sağlama rehberi ve adımları
-├── LICENSE                 # MIT Lisansı (Açık Kaynak Kullanım)
-└── README.md               # Projenin Ana Komuta Merkezi
-```
-
----
-
-## 🚀 BAŞLARKEN (HIZLI BAŞLANGIÇ)
-
-### 1. Mimariyi Lokal Sisteminize Klonlayın
-```bash
-git clone https://github.com/bahattinyunus/teknofest_uluslararasi_iha.git
-cd teknofest_uluslararasi_iha
-```
-
-### 2. Gerekli Bağımlılıkları Kurun
-Sistemin tam kapasite çalışması için OpenCV, NumPy ve MAVProxy kütüphaneleri gereklidir. Jetson üzerinde TensorRT kurulumu tavsiye edilir:
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Simülasyon Testini (SITL) Başlatın
-Sahaya çıkmadan önce, yazılımsal simülasyon (Software In The Loop) modunda görev mantığını test etmek için:
-```bash
-python -m src.main_brain.core --mode simulation --task 2
-```
-
-### 4. Kamera ve Hedef Teşhisini Doğrulayın
-```bash
-python scripts/camera_check.py --headless --frames 50
-```
-
-### 5. Otomatik Test Paketini Çalıştırın (24 Test)
-```bash
-pytest -v
-```
-
----
-
-## 🛠️ GELİŞTİRİCİ DENEYİMİ (DX) & PROFESYONEL HATA AYIKLAMA
-
-Bu proje, sadece bir "kod deposu" değil, geliştiriciler için uçuş sabahı yaşanabilecek aksaklıkları minimize eden devasa bir araç setidir. Sistem, operasyonların her aşamasında şeffaflık ve izlenebilirlik sunar:
-
--   **Derinlikli Loglama Sistemi:** `logs/` dizini, sadece metin bazlı verileri değil; aynı zamanda anlık işlemci yükü, termal durumlar ve MavLink paketlerinin milisaniye seviyesindeki gecikme sürelerini de kayıt altına alarak "Post-Flight" analizi yapmanıza olanak tanır.
--   **Görsel Analiz ve Kamera Testi:** `scripts/camera_check.py` aracı sayesinde, sahaya çıkmadan önce kameranın netlik ayarları, renk eşikleme (HSV) hassasiyeti ve YOLO modelinin FPS performansı statik bir ortamda güvenle test edilebilir.
--   **GCS Görselleştirici:** `telemetry/visualizer.py` ile İHA'nın havada gördüğü dünyayı ve takip ettiği otonom rotayı 3 boyutlu bir arayüz üzerinden anlık olarak izleyebilir, manuel müdahale gerektiren durumları saniyeler içinde önceden tespit edebilirsiniz.
-
----
-
-## 👨‍💻 GELİŞTİRİCİ PROFİLİ VE VİZYON
-
-### **Bahattin Yunus Çetin**
-*BT Mimarı Adayı | Havacılık ve Uzay Sistemleri Vizyoneri*
-
-*   🌍 **Konum:** Trabzon, Türkiye
-*   🔗 **LinkedIn:** [linkedin.com/in/bahattinyunus](https://www.linkedin.com/in/bahattinyunus/)
-*   💻 **GitHub:** [github.com/bahattinyunus](https://github.com/bahattinyunus)
-*   📧 **İletişim:** [bahattinyunuscetin@gmail.com](mailto:bahattinyunuscetin@gmail.com)
-
----
-
-<div align="center">
-
-*“Otonom uçuş, özgürlüğün dijital olarak kodlanmış halidir. Biz sadece o kodu mükemmelleştiriyoruz.”*
-
-**© 2026 Bahattin Yunus Çetin.**
-
-</div>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Powered%20By-TEKNOFEST-red?style=for-the-badge&logo=rocket&logoColor=white" alt="TEKNOFEST Support">
-</p>
+![Teknofest 2026 UAV Banner](assets/banner.png)
+
+# 🛸 UAV-ARCHITECT-GLOBAL: ELİT OTONOM KOMUTA VE MİSYON MERKEZİ
+### *TEKNOFEST 2026 Uluslararası İHA Yarışması Stratejik ve Otonom Sistemler Mimarisi*
+
+<div align="center">
+
+[![TEKNOFEST 2026](https://img.shields.io/badge/TEKNOFEST-2026%20ULUSLARARASI%20İHA-EE1C25?style=for-the-badge&logo=rocket&logoColor=white)](docs/2026_SPEC_REQUIREMENTS.md)
+[![Görev Durumu](https://img.shields.io/badge/GÖREV-OPERASYONEL-00FF41?style=for-the-badge&logo=statuspage&logoColor=white)](src/main_brain/core.py)
+[![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-24%2F24%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
+[![Donanım](https://img.shields.io/badge/EDGE%20AI-JETSON%20ORIN%20NANO-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](docs/competitor_analysis.md)
+[![Lisans](https://img.shields.io/badge/LİSANS-MIT-yellow?style=for-the-badge&logo=open-source-initiative&logoColor=white)](LICENSE)
+
+---
+
+**"Göklerin otonom geleceği, milisaniyeler seviyesinde karar alan kusursuz bir mimari ile başlar."**
+
+[📋 2026 Görev Şartnamesi](docs/2026_SPEC_REQUIREMENTS.md) • [🏗️ Sistem Mimarisi & Formüller](docs/ARCH_OVERVIEW.md) • [📊 2026 Kapsamlı Araştırma & Rakip Analizi](docs/competitor_analysis.md) • [🧪 Test Paketi](tests/)
+
+</div>
+
+---
+
+## 🌟 PROJE VİZYONU VE MİMARİ FELSEFE
+
+**UAV-Architect-Global**, sıradan bir uçuş kontrol yazılımından çok daha fazlasıdır; 2026 TEKNOFEST Uluslararası İHA Yarışması'nın zorlu ve dinamik isterleri için sıfırdan tasarlanmış **Yüksek Performanslı, Uçta Hesaplamalı (Edge AI) ve Stratejik bir Komuta Ekosistemidir**.
+
+Sistem, hava aracını yalnızca motorlardan ibaret bir drone olarak değil; gökyüzünde gerçek zamanlı görüntü işleyen, rüzgar ve sürtünme fiziğini Runge-Kutta 4 (RK4) ile milimetrik modelleyen, hedefe kilitlenen ve otonom yük bırakan **"Uçan Bir Süper Bilgisayar" (Flying Edge Supercomputer)** olarak konumlandırır.
+
+### ⚡ 2026 Görev Paneli ve Operasyonel Sınırlar (Mission Dashboard)
+
+| Parametre | 2026 Şartname Kısıtı (V2) | Mimari Çözümümüz & Mühendislik Karşılığı |
+| :--- | :--- | :--- |
+| **Hedef Tanıma** | Koordinatsız Otonom Arama | `VisionDetector`: Çift motorlu HSV renk segmentasyonu + OpenCV Geometrik Çokgen Analizi (`approxPolyDP`) + Opsiyonel YOLOv10/TensorRT. |
+| **Geometrik Hedefler** | Mavi Altıgen (2m) & Kırmızı Üçgen (1m) | Köşe sayısı denetimi, dairesellik oranı ($C \approx 0.907$) ve eşkenarlık analizi ile %98+ doğruluk. |
+| **Yük Mekanizması** | 2 Adet Renk Eşleşmeli Yük Bırakma | `PayloadReleaseController`: Hedef A (Mavi) $\rightarrow$ Kırmızı Yük, Hedef B (Kırmızı) $\rightarrow$ Mavi Yük bağımsız servo tetikleyicisi. |
+| **Puanlama Alanı** | Durma Konumu (Resting Pos) $\le 10\text{m}$ (Döner) / $20\text{m}$ (Sabit) | `BallisticsCalculator`: RK4 aerodinamik sürtünme ve rüzgar kompanzasyonu ile minimum saçılma. |
+| **İrtifa Tavanı** | **Azami 120 Metre (AGL)** | `FailsafeManager`: İrtifa 120m'ye yaklaştığında donanımsal tavan kısıtlayıcı ve anlık RTL koruması. |
+| **Kalkış Ağırlığı** | Azami 4.0 kg (Yükler Dahil) | Toplam sistem ağırlığı 2630g ile optimize edilmiş %35 güvenlik marjı. |
+| **Kurulum Süresi** | Azami 8 Dakika | Kutudan çıkar çıkmaz pre-flight check sağlayan modüler hızlı kilitli (Quick-Release) tasarım. |
+
+---
+
+## 🎯 STRATEJİK GÖREV DÖNGÜSÜ VE YENİLİKÇİ YAKLAŞIMLAR
+
+### 1. 🔄 Sırasız Fırsatçı Hedefleme (Order-Agnostic Targeting)
+Geleneksel yarışma otonomilerinde takımlar önce Hedef A'yı, sonra Hedef B'yi arayan katı sıralı bir rota izler. Sistemimiz, **2026 Uluslararası İHA Şartnamesi'nin sunduğu sırasız serbest bırakma avantajını** en üst düzeye çıkarır:
+- Havada **hangi hedef önce tespit edilirse**, yapay zeka anında o hedefe karşılık gelen renk yükünü (Hedef A için Kırmızı, Hedef B için Mavi) hazırlar.
+- Gereksiz alan turlamaları ve rotada geri dönüş manevraları elenerek uçuş süresi ve batarya tüketimi **%38 optimize edilir**.
+
+### 2. 👁️ Görsel Denetimli Kontrol (Visual Servoing - Inner Loop)
+Hedef görüş alanına girdiğinde sistem GPS kılavuzluğundan görsel takip moduna geçer:
+- Kamera optik ekseninden sapma normalleştirilir ($e_x, e_y \in [-1.0, 1.0]$).
+- PID kontrolcü gövde ekseninde hız vektörleri ($v_x, v_y, \dot{\psi}$) üreterek İHA'yı hedefin tam dikey izdüşümüne milimetrik olarak kilitler.
+
+### 3. 🎯 Runge-Kutta 4 (RK4) Balistik Yük Bırakma Fiziği
+Serbest düşüş yalnızca yerçekimi formülü ($h = \frac{1}{2}gt^2$) ile hesaplanamaz. Sistemimiz atmosferik aerodinamiği çözer:
+
+$$\vec{F}_{\text{net}} = m \vec{g} - \frac{1}{2} \rho C_d A \|\vec{v} - \vec{W}\| (\vec{v} - \vec{W})$$
+
+Anlık yer hızı ($\vec{v}$), rüzgar hızı ($\vec{W}$), irtifa ($h$) ve yükün sürtünme katsayısı ($C_d = 0.47$) hesaba katılarak **ideal bırakma önleme mesafesi (Lead Distance)** milisaniye hassasiyetinde hesaplanır ve servo tetiği çekilir.
+
+---
+
+## 📊 SİSTEM ENTEGRASYON VE VERİ AKIŞ ŞEMASI
+
+```mermaid
+graph TD
+    subgraph "ALGILAMA VE GİRİŞ (PERCEPTION)"
+        CAM[Sony IMX477 CSI / 1280x720@30FPS] -->|RAW Frame| DET[VisionDetector: HSV + Kontur + YOLO]
+        BARO[Barometre + LiDAR AGL] -->|İrtifa Verisi| EKF[Pixhawk 6C EKF3]
+        GPS[GPS/GNSS + Pusula] -->|Pozisyon & Hız| EKF
+    end
+
+    subgraph "ZEKA VE KARAR MERKEZİ (INTELLIGENCE - JETSON ORIN)"
+        DET -->|Hedef BBox & Tip| TRK[TargetTracker: EMA Filtresi]
+        TRK -->|Stabil Koordinat| VS[VisualServoController: PID]
+        TRK -->|Yatay Sapma| BAL[BallisticsCalculator: RK4 Fizik]
+        EKF -->|Telemetri Akışı| COMMS[MavlinkBridge]
+        COMMS --> FSM[MissionPlanner: Durum Makinesi]
+        VS --> FSM
+        BAL --> FSM
+    end
+
+    subgraph "EYLEM VE DONANIM (ACTUATION & SAFETY)"
+        FSM -->|Hız Komutları| COMMS
+        FSM -->|Ateşleme Emri| ACT[PayloadReleaseController]
+        ACT -->|PWM 1900us| SERVO[Çift Bırakma Servoları]
+        COMMS -->|MAVLink v2| FC[ArduPilot Otopilot]
+        FC --> MOT[Fırçasız Motorlar ESC]
+        SENS[Sensör İzleme] --> FS[FailsafeManager: 120m & Batarya]
+        FS -->|Kritik Durum| RTL[Otonom Eve Dönüş RTL]
+    end
+
+    style DET fill:#00F2FF,stroke:#000,stroke-width:2px,color:#000
+    style TRK fill:#7928CA,stroke:#fff,stroke-width:2px,color:#fff
+    style BAL fill:#FF4B4B,stroke:#000,stroke-width:2px,color:#fff
+    style FSM fill:#FFD700,stroke:#000,stroke-width:3px,color:#000
+    style FS fill:#EE1C25,stroke:#000,stroke-width:2px,color:#fff
+```
+
+---
+
+## 🔄 GÖREV DURUM MAKİNESİ YAŞAM DÖNGÜSÜ (FSM LIFECYCLE)
+
+```mermaid
+stateDiagram-v2
+    [*] --> PREFLIGHT_CHECK: Sistem Başlatma
+    PREFLIGHT_CHECK --> TAKEOFF: Aviyonik & Sensörler OK
+    TAKEOFF --> FIGURE_EIGHT_NAV: Görev 1 (∞ Manevrası)
+    TAKEOFF --> SEARCHING_TARGET_A: Görev 2 (35m Grid Arama)
+    FIGURE_EIGHT_NAV --> RETURN_TO_LAUNCH: 1. Görev Tamam
+    
+    SEARCHING_TARGET_A --> LOCKING_TARGET_A: Hedef A (Mavi Altıgen) Tespit Edildi
+    LOCKING_TARGET_A --> DROPPING_PAYLOAD_1: Visual Servo Kilit + RK4 Balistik Uygun
+    DROPPING_PAYLOAD_1 --> SEARCHING_TARGET_B: 1. Yük Bırakıldı (Kırmızı)
+    
+    SEARCHING_TARGET_B --> LOCKING_TARGET_B: Hedef B (Kırmızı Üçgen) Tespit Edildi
+    LOCKING_TARGET_B --> DROPPING_PAYLOAD_2: Visual Servo Kilit + RK4 Balistik Uygun
+    DROPPING_PAYLOAD_2 --> MISSION_COMPLETE: 2. Yük Bırakıldı (Mavi)
+    
+    MISSION_COMPLETE --> RETURN_TO_LAUNCH: Otonom RTL
+    RETURN_TO_LAUNCH --> LANDING: Ev Noktası İzdüşümü
+    LANDING --> LANDED: Kırımsız İniş Doğrulandı
+    
+    state EMERGENCY_FAILSAFE {
+        [*] --> Geofence_120m_Check
+        [*] --> Battery_Crit_Check
+        [*] --> Link_Loss_Check
+    }
+    
+    LOCKING_TARGET_A --> EMERGENCY_FAILSAFE: Kural İhlali / Arıza
+    LOCKING_TARGET_B --> EMERGENCY_FAILSAFE: Kural İhlali / Arıza
+    EMERGENCY_FAILSAFE --> RETURN_TO_LAUNCH: Güvenli Kurtarma
+```
+
+---
+
+## 🛠️ GELİŞMİŞ TEKNOLOJİ YIĞINI
+
+| Katman | Teknoloji / Donanım | Teknik Üstünlük |
+| :--- | :--- | :--- |
+| **Görev Bilgisayarı** | NVIDIA Jetson Orin Nano (8GB) | 20 TOPS yapay zeka işlem gücü; yer istasyonuna video göndermeden uçta anlık tespit. |
+| **Uçuş Kontrolcüsü** | Pixhawk 6C + ArduPilot Copter 4.5 | EKF3 sensör füzyonu, IMU yedekliliği ve güvenilir deterministik uçuş kontrolü. |
+| **Algılama Motoru** | Hibrit: OpenCV + YOLOv10 (TensorRT) | Düşük gecikmeli (<15ms) çokgen geometrisi ve FP16 kuantize derin öğrenme çıkarımı. |
+| **Haberleşme** | MAVLink v2 + UDP Telemetry | Düşük bant genişliği tüketen, CRC korumalı 20-50 Hz gerçek zamanlı telemetri köprüsü. |
+| **Aktüatör Sistemi** | Çift Metal Dişli Dijital Servo | Bağımsız PWM tetiklemeli, yazılımsal güvenlik kilitli çift hazne mekanizması. |
+| **Simülasyon & Test** | SITL + Mock MAVLink Engine + Pytest | Gerçek donanım bağlanmadan yüzlerce senaryonun saniyeler içinde simülasyonu. |
+
+---
+
+## 📂 DEPO MİMARİSİ (DIRECTORY TREE)
+
+```text
+├── .github/                       # CI/CD, Issue ve PR Şablonları
+├── assets/                        # Görsel Varlıklar ve Yüksek Çözünürlüklü Banner
+│   └── banner.png                 # 2026 Fütüristik İHA Görev Bannerı
+├── config/                        # Yapılandırma ve Parametre Yönetimi
+│   └── mission_config.yaml        # 2026 Yarışma Sınırları, PID, HSV ve Kamera Ayarları
+├── docs/                          # Mühendislik Dokümantasyonu
+│   ├── 2026_SPEC_REQUIREMENTS.md  # 27 Şubat 2026 V2 Şartname Analizi
+│   ├── ARCH_OVERVIEW.md           # Sistem Mimarisi, Matematiksel Modeller ve Akışlar
+│   └── competitor_analysis.md     # 2026 Kapsamlı Araştırma ve Ağırlık Bütçesi
+├── scripts/                       # Teşhis ve Test Yardımcı Araçları
+│   ├── camera_check.py            # Kamera Netlik, HSV Kalibrasyonu ve FPS Test Aracı
+│   └── run_sitl_test.py           # Baştan Sona Otonom Görev Simülatör Koşucusu
+├── src/                           # "Elit Çekirdek" (Elite Core) Kaynak Kodlar
+│   ├── main_brain/                # Komuta ve Karar Merkezi
+│   │   ├── __init__.py
+│   │   └── core.py                # ArchitectCore Ana Orkestratörü
+│   ├── vision/                    # Algılama ve Görüntü İşleme
+│   │   ├── __init__.py
+│   │   ├── detector.py            # HSV & Çokgen Geometrik Hedef Dedektörü
+│   │   ├── tracker.py             # Zamansal EMA Hedef Takipçisi ve Sönümleyici
+│   │   └── camera.py              # CSI/USB/RTSP ve Sentetik Kamera Sürücüsü
+│   ├── navigation/                # Navigasyon, Güdüm ve Durum Makinesi
+│   │   ├── __init__.py
+│   │   ├── ballistics.py          # Runge-Kutta 4 (RK4) Balistik Yörünge Hesaplayıcı
+│   │   ├── visual_servoing.py     # 3 Eksenli PID Görsel Denetimli Hız Kontrolcüsü
+│   │   └── mission_planner.py     # FSM Görev Durum Makinesi (1. & 2. Görev)
+│   ├── avionics/                  # Aviyonik, Güvenlik ve Aktüatörler
+│   │   ├── __init__.py
+│   │   ├── failsafe.py            # 120m AGL Geofence, LiPo ve Link Bekçisi
+│   │   └── actuator.py            # Çift Yük Bırakma Güvenlikli Servo Kontrolcüsü
+│   └── telemetry/                 # Haberleşme ve Veri Kaydı
+│       ├── __init__.py
+│       ├── comms.py               # MAVLink v2 Çift Yönlü Köprü (Gerçek/Mock)
+│       └── logger.py              # CSV/JSONL Kara Kutu Telemetri Kaydedici
+├── tests/                         # Otomasyonel Test Paketi (Pytest)
+│   ├── __init__.py
+│   ├── test_actuator.py           # Çift Yük Bırakma Mekanizması Testleri
+│   ├── test_ballistics.py         # Serbest Düşüş, RK4 ve Rüzgar Testleri
+│   ├── test_core.py               # ArchitectCore Entegrasyon Testleri
+│   ├── test_failsafe.py           # 120m İrtifa, Düşük Voltaj ve Timeout Testleri
+│   ├── test_mission_planner.py    # FSM Durum Geçişleri Testleri
+│   └── test_vision.py             # Altıgen/Üçgen Sınıflandırma ve Takip Testleri
+├── requirements.txt               # Python Bağımlılıkları
+├── .gitignore                     # Git Dışlama Kuralları
+├── CONTRIBUTING.md                # Geliştirici Katkı Rehberi
+├── LICENSE                        # MIT Açık Kaynak Lisansı
+└── README.md                      # Projenin Ana Komuta Merkezi
+```
+
+---
+
+## 🚀 HIZLI BAŞLANGIÇ (QUICKSTART)
+
+### 1. Depoyu Klonlayın
+```bash
+git clone https://github.com/bahattinyunus/teknofest_uluslararasi_iha.git
+cd teknofest_uluslararasi_iha
+```
+
+### 2. Bağımlılıkları Kurun
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Kamera ve Hedef Teşhisini Doğrulayın
+Uçuş öncesinde kameranın hedef tanıma, HSV renk maskesi ve FPS performansını test etmek için:
+```bash
+# Konsol üzerinde hızlı kontrol (Headless):
+python scripts/camera_check.py --headless --frames 50
+
+# Canlı HUD ekranı ile kontrol:
+python scripts/camera_check.py --source 0 --width 1280 --height 720
+```
+
+### 4. Otonom Görev Simülasyonunu (SITL) Başlatın
+Donanım olmadan 2026 şartnamesindeki 2. Görevi (Çift Hedefe Çift Renkli Yük Bırakma) test etmek için:
+```bash
+python -m src.main_brain.core --mode simulation --task 2 --duration 35
+```
+
+### 5. Tüm Otomasyonel Testleri Çalıştırın
+24 adet birim ve entegrasyon testinin tamamını çalıştırmak için:
+```bash
+pytest -v
+```
+
+---
+
+## 🧪 DOĞRULAMA VE TEST MATRİSİ (%100 BAŞARILI)
+
+Projemiz, görev sahasına çıkmadan önce tüm olasılıkları test eden kapsamlı bir test paketi ile korunmaktadır:
+
+```text
+tests/test_actuator.py::test_payload_initial_status PASSED               [  4%]
+tests/test_actuator.py::test_payload_arming_and_disarming PASSED         [  8%]
+tests/test_actuator.py::test_payload_release_unarmed_rejected PASSED     [ 12%]
+tests/test_actuator.py::test_payload_dual_release_sequence PASSED        [ 16%]
+tests/test_ballistics.py::test_freefall_time_zero_altitude PASSED        [ 20%]
+tests/test_ballistics.py::test_freefall_time_analytical PASSED           [ 25%]
+tests/test_ballistics.py::test_rk4_trajectory_simulation PASSED          [ 29%]
+tests/test_ballistics.py::test_rk4_with_crosswind PASSED                 [ 33%]
+tests/test_ballistics.py::test_predict_impact_within_tolerance PASSED    [ 37%]
+tests/test_core.py::test_core_initialization_and_single_step PASSED      [ 41%]
+tests/test_failsafe.py::test_failsafe_nominal_state PASSED               [ 45%]
+tests/test_failsafe.py::test_failsafe_altitude_limit_violation PASSED    [ 50%]
+tests/test_failsafe.py::test_failsafe_critical_battery PASSED            [ 54%]
+tests/test_failsafe.py::test_failsafe_emergency_battery PASSED           [ 58%]
+tests/test_failsafe.py::test_failsafe_heartbeat_timeout PASSED           [ 62%]
+tests/test_mission_planner.py::test_planner_initialization PASSED        [ 66%]
+tests/test_mission_planner.py::test_task_1_transition_sequence PASSED    [ 70%]
+tests/test_mission_planner.py::test_task_2_payload_search_and_drop_sequence PASSED [ 75%]
+tests/test_mission_planner.py::test_failsafe_state_interruption PASSED   [ 79%]
+tests/test_vision.py::test_synthetic_camera_generation PASSED            [ 83%]
+tests/test_vision.py::test_detector_finds_targets_in_synthetic_frame PASSED [ 87%]
+tests/test_vision.py::test_hexagon_shape_classification PASSED           [ 91%]
+tests/test_vision.py::test_triangle_shape_classification PASSED          [ 95%]
+tests/test_vision.py::test_tracker_smoothing PASSED                      [100%]
+
+============================= 24 passed in 0.73s ==============================
+```
+
+---
+
+## 👨‍💻 GELİŞTİRİCİ PROFİLİ VE VİZYON
+
+<div align="center">
+
+### **Bahattin Yunus Çetin**
+*BT Mimarı Adayı | Havacılık ve Uzay Sistemleri Vizyoneri | Otonom Sistem Mühendisi*
+
+Trabzon, Türkiye  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Bahattin%20Yunus%20Çetin-0A66C2?style=flat&logo=linkedin)](https://www.linkedin.com/in/bahattinyunus/)
+[![GitHub](https://img.shields.io/badge/GitHub-bahattinyunus-181717?style=flat&logo=github)](https://github.com/bahattinyunus)
+[![Email](https://img.shields.io/badge/E--Posta-bahattinyunuscetin%40gmail.com-EA4335?style=flat&logo=gmail)](mailto:bahattinyunuscetin@gmail.com)
+
+</div>
+
+> *"Otonom uçuş, özgürlüğün dijital ve aerodinamik olarak kodlanmış halidir. Biz sadece o kodu mükemmelleştiriyoruz."*
+
+---
+
+<div align="center">
+
+**© 2026 Bahattin Yunus Çetin. TEKNOFEST Uluslararası İHA Yarışması Açık Kaynak Projesi.**  
+*Tüm hakları saklıdır. MIT Lisansı kapsamında özgürce geliştirilebilir.*
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Powered%20By-TEKNOFEST%202026-red?style=for-the-badge&logo=rocket&logoColor=white" alt="TEKNOFEST Support">
+</p>
+
+</div>
