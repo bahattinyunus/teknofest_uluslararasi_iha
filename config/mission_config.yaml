@@ -1,0 +1,102 @@
+# ==============================================================================
+# TEKNOFEST 2026 ULUSLARARASI İHA GÖREV VE SİSTEM YAPILANDIRMASI
+# ==============================================================================
+# Versiyon: 2.0 (27 Şubat 2026 Şartname Revizyonu ile Uyumlu)
+# Mimari: Observer-Executor (Jetson Orin Nano + Pixhawk 6C ArduPilot)
+# ==============================================================================
+
+competition:
+  name: "TEKNOFEST 2026 Uluslararası İHA Yarışması"
+  spec_version: "V2_2026_02_27"
+  category: "rotary_wing" # rotary_wing | fixed_wing
+  max_takeoff_weight_kg: 4.0
+  max_setup_time_min: 8.0
+  max_altitude_agl_m: 120.0
+  scoring_radius_m:
+    rotary_wing: 10.0
+    fixed_wing: 20.0
+
+flight_dynamics:
+  takeoff_altitude_m: 30.0
+  search_altitude_m: 35.0
+  approach_altitude_m: 20.0
+  cruise_speed_mps: 8.0
+  max_ground_speed_mps: 15.0
+  min_ground_speed_mps: 3.0
+  climb_rate_mps: 2.5
+  descent_rate_mps: 1.5
+
+failsafe:
+  max_altitude_agl_m: 120.0
+  geofence_radius_m: 500.0
+  battery_warning_voltage: 14.8   # 4S LiPo: 3.70V / hücre
+  battery_critical_voltage: 14.0  # 4S LiPo: 3.50V / hücre -> RTL
+  battery_emergency_voltage: 13.2 # 4S LiPo: 3.30V / hücre -> Acil İniş
+  heartbeat_timeout_s: 3.0
+  motor_loss_action: "RTL"
+  link_loss_action: "RTL"
+
+payload:
+  total_payloads: 2
+  payload_slots:
+    slot_1:
+      color: "red"
+      target_type: "TARGET_A" # Mavi Altıgen / Mavi Dikdörtgen
+      servo_channel: 9
+      open_pwm: 1900
+      closed_pwm: 1100
+      release_delay_s: 0.5
+    slot_2:
+      color: "blue"
+      target_type: "TARGET_B" # Kırmızı Üçgen / Kırmızı Kare
+      servo_channel: 10
+      open_pwm: 1900
+      closed_pwm: 1100
+      release_delay_s: 0.5
+
+vision:
+  camera_source: "synthetic" # 0 (USB), "csi", "rtsp://...", "synthetic"
+  frame_width: 1280
+  frame_height: 720
+  fps: 30
+  field_of_view_deg: 85.0
+  detection_backend: "geometric" # "geometric" | "yolo" | "hybrid"
+  confidence_threshold: 0.70
+  
+  # HSV Renk Uzayı Aralıkları (Ortam aydınlatmasına göre kalibre edilebilir)
+  color_ranges:
+    blue:
+      lower: [100, 120, 50]
+      upper: [140, 255, 255]
+    red_lower_range:
+      lower: [0, 120, 50]
+      upper: [10, 255, 255]
+    red_upper_range:
+      lower: [170, 120, 50]
+      upper: [180, 255, 255]
+
+ballistics:
+  gravity_m_s2: 9.80665
+  payload_mass_kg: 0.250
+  drag_coefficient_cd: 0.47 # Küresel / aero gövde
+  cross_sectional_area_m2: 0.00785 # 10cm çap
+  air_density_kg_m3: 1.225
+  integration_step_s: 0.01
+  max_drop_error_tolerance_m: 2.5
+
+visual_servoing:
+  enabled: true
+  center_tolerance_px: 25.0
+  kp_x: 0.003
+  ki_x: 0.0001
+  kd_x: 0.0008
+  kp_y: 0.003
+  ki_y: 0.0001
+  kd_y: 0.0008
+  max_velocity_mps: 2.0
+
+telemetry:
+  connection_string: "udp:127.0.0.1:14550" # Serial: "/dev/ttyACM0" or "COM3"
+  baudrate: 115200
+  heartbeat_frequency_hz: 1.0
+  stream_rate_hz: 20.0
