@@ -4,6 +4,7 @@ UAV-Architect-Global: Vision Subsystem
 from src.vision.detector import VisionDetector, TargetDetection, TargetType, TargetShape, TargetColor
 from src.vision.tracker import TargetTracker
 from src.vision.camera import CameraInterface
+from src.vision.dataset_generator import SyntheticDatasetGenerator
 
 __all__ = [
     "VisionDetector",
@@ -12,5 +13,6 @@ __all__ = [
     "TargetShape",
     "TargetColor",
     "TargetTracker",
-    "CameraInterface"
+    "CameraInterface",
+    "SyntheticDatasetGenerator"
 ]

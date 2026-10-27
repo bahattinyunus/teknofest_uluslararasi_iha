@@ -1,9 +1,10 @@
 """
 TEKNOFEST 2026 Uluslararası İHA - Elit Komuta ve Karar Merkezi (ArchitectCore)
 =============================================================================
-Tüm alt sistemleri (Görüntü İşleme, Hedef Takip, Görsel Denetimli Kontrol,
-Balistik Hesaplayıcı, Aviyonik Güvenlik, Yük Bırakma ve MAVLink Telemetri)
-tek bir orkestrasyon altında senkronize eden ana zeka modülü.
+Tüm alt sistemleri (Görüntü İşleme, Hedef Takip, EKF Konumlandırma, Rüzgar
+Kestiricisi, Görsel Denetimli Kontrol, RK4 Balistik Hesaplayıcı, Arama Rotaları,
+Aviyonik Güvenlik, Yük Bırakma ve MAVLink Telemetri) tek bir orkestrasyon altında
+senkronize eden ana zeka modülü.
 """
 
 from typing import Dict, Any, Optional
@@ -28,10 +29,14 @@ from src.vision.camera import CameraInterface
 from src.navigation.ballistics import BallisticsCalculator, DropPrediction
 from src.navigation.visual_servoing import VisualServoController
 from src.navigation.mission_planner import MissionPlanner, MissionState, MissionTask
+from src.navigation.wind_estimator import WindEstimator, WindEstimate
+from src.navigation.target_ekf import TargetEKF, TargetState
+from src.navigation.search_patterns import SearchPatternGenerator, Waypoint
 from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadStatus
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
+from src.telemetry.visualizer import TelemetryVisualizer
 
 
 class ArchitectCore:
@@ -75,9 +80,16 @@ class ArchitectCore:
         self.detector = VisionDetector(self.config)
         self.tracker = TargetTracker(alpha=0.7)
 
-        # 5. Navigasyon ve Balistik Yönlendirme
+        # 5. Navigasyon, Güdüm ve EKF Kestiriciler
         self.ballistics = BallisticsCalculator(self.config)
         self.servo_controller = VisualServoController(self.config)
+        self.wind_estimator = WindEstimator(filter_alpha=0.2)
+        self.target_ekf = TargetEKF()
+        self.search_generator = SearchPatternGenerator()
+
+        # Arama Waypoint rotaları
+        self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
+        self.grid_route = self.search_generator.generate_boustrophedon_grid(area_width_m=100.0, area_height_m=60.0)
 
         # 6. Görev Durum Makinesi
         self.planner = MissionPlanner(self.config)
@@ -88,13 +100,16 @@ class ArchitectCore:
         else:
             self.planner.set_task(MissionTask.COMBINED_FULL)
 
-        # 7. Telemetri Günlük Kaydedici
+        # 7. Telemetri Günlük Kaydedici & Görselleştirici
         self.logger = MissionLogger()
+        self.visualizer = TelemetryVisualizer()
 
         self.running = False
         self.status = "HAZIR"
         self.active_locked_target: Optional[TargetDetection] = None
         self.latest_drop_prediction: Optional[DropPrediction] = None
+        self.latest_wind = WindEstimate(0, 0, 0, 0, 0, 0, 0)
+        self.latest_target_state: Optional[TargetState] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -113,7 +128,14 @@ class ArchitectCore:
         telem = self.comms.fetch_flight_data()
         self.comms.send_heartbeat()
 
-        # 2. Aviyonik ve Failsafe Değerlendirmesi
+        # 2. Gerçek Zamanlı Rüzgar Kestirimi (Wind Estimator)
+        self.latest_wind = self.wind_estimator.update(
+            ground_speed_n=telem.vx,
+            ground_speed_e=telem.vy,
+            heading_deg=telem.heading_deg
+        )
+
+        # 3. Aviyonik ve Failsafe Değerlendirmesi
         health = AvionicsHealth(
             voltage_v=telem.voltage_v,
             current_a=15.0,
@@ -127,7 +149,7 @@ class ArchitectCore:
         if self.failsafe.failsafe_triggered:
             self.comms.trigger_rtl()
 
-        # 3. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
+        # 4. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
         ret, frame = self.camera.read_frame()
         detections = []
         if ret and frame is not None:
@@ -148,12 +170,23 @@ class ArchitectCore:
         target_a_locked = bool(self.active_locked_target and self.active_locked_target.target_type == TargetType.TARGET_A)
         target_b_locked = bool(self.active_locked_target and self.active_locked_target.target_type == TargetType.TARGET_B)
 
-        # 4. Balistik ve Görsel Denetim Hesaplamaları
+        # 5. Target EKF ile Yer Konumunun ve Balistik Bırakmanın Hesaplanması
         ballistics_ready = False
         lead_dist = 0.0
         miss_dist = 999.0
 
         if self.active_locked_target is not None:
+            # EKF yer projeksiyonunu güncelle
+            self.latest_target_state = self.target_ekf.update(
+                norm_offset_xy=self.active_locked_target.normalized_offset,
+                uav_pos_xy=(0.0, 0.0),
+                altitude_agl=max(2.0, telem.altitude_agl),
+                roll_deg=telem.roll_deg,
+                pitch_deg=telem.pitch_deg,
+                yaw_deg=telem.heading_deg
+            )
+
+            # Görsel denetimli kontrol komutları üret
             cmd = self.servo_controller.compute_control(
                 target_offset_norm=self.active_locked_target.normalized_offset,
                 target_center_px=self.active_locked_target.center_px,
@@ -164,26 +197,24 @@ class ArchitectCore:
             if self.planner.state in (MissionState.LOCKING_TARGET_A, MissionState.LOCKING_TARGET_B):
                 self.comms.send_velocity_ned(cmd.vx_mps, cmd.vy_mps, cmd.vz_mps, cmd.yaw_rate_deg_s)
 
-            # Balistik tahmin yap
-            uav_xy = (0.0, 0.0)
-            # Normalleştirilmiş sapmadan tahmini yer mesafesi (irtifa * tan(fov/2 * norm))
-            fov_rad = np.radians(85.0)
-            t_ground_x = telem.altitude_agl * np.tan(fov_rad / 2.0) * self.active_locked_target.normalized_offset[1]
-            t_ground_y = telem.altitude_agl * np.tan(fov_rad / 2.0) * self.active_locked_target.normalized_offset[0]
+            # Hedef yer koordinatı (EKF ile filtrelenmiş)
+            t_ground_x = self.latest_target_state.pos_x_m
+            t_ground_y = self.latest_target_state.pos_y_m
 
+            # RK4 Balistik tahmin (Rüzgar kestirimi entegre edilmiş)
             prediction = self.ballistics.predict_impact(
-                uav_pos_xy=uav_xy,
+                uav_pos_xy=(0.0, 0.0),
                 target_pos_xy=(t_ground_x, t_ground_y),
                 velocity_xy=(telem.vx if abs(telem.vx) > 0.1 else 2.5, telem.vy),
                 altitude_m=max(5.0, telem.altitude_agl),
-                wind_xy=(0.0, 0.0)
+                wind_xy=(self.latest_wind.wind_x_mps, self.latest_wind.wind_y_mps)
             )
             self.latest_drop_prediction = prediction
             lead_dist = prediction.lead_distance_m
             miss_dist = prediction.predicted_miss_distance_m
             ballistics_ready = prediction.is_within_tolerance or (cmd.is_centered and miss_dist < 3.5)
 
-        # 5. Görev Durum Makinesini Güncelle
+        # 6. Görev Durum Makinesini Güncelle
         prev_state = self.planner.state
         new_state = self.planner.update(
             altitude_agl=telem.altitude_agl,
@@ -195,18 +226,20 @@ class ArchitectCore:
             failsafe_triggered=self.failsafe.failsafe_triggered
         )
 
-        # 6. Duruma Özel Eylemler
+        # 7. Duruma Özel Eylemler
         if new_state == MissionState.DROPPING_PAYLOAD_1 and prev_state != MissionState.DROPPING_PAYLOAD_1:
             print("[CORE] >>> HEDEF A'YA 1. YÜK (KIRMIZI) BIRAKILIYOR! <<<")
             self.actuator.release_payload_for_target("TARGET_A")
             self.logger.log_event("PAYLOAD_RELEASE", {"slot": 1, "target": "TARGET_A", "color": "red", "altitude": telem.altitude_agl})
             self.tracker.reset()
+            self.target_ekf.reset()
 
         elif new_state == MissionState.DROPPING_PAYLOAD_2 and prev_state != MissionState.DROPPING_PAYLOAD_2:
             print("[CORE] >>> HEDEF B'YE 2. YÜK (MAVİ) BIRAKILIYOR! <<<")
             self.actuator.release_payload_for_target("TARGET_B")
             self.logger.log_event("PAYLOAD_RELEASE", {"slot": 2, "target": "TARGET_B", "color": "blue", "altitude": telem.altitude_agl})
             self.tracker.reset()
+            self.target_ekf.reset()
 
         elif new_state == MissionState.RETURN_TO_LAUNCH and prev_state != MissionState.RETURN_TO_LAUNCH:
             self.comms.trigger_rtl()
@@ -224,7 +257,7 @@ class ArchitectCore:
             elif new_state == MissionState.LANDING:
                 telem.altitude_agl = max(0.0, telem.altitude_agl - 1.2)
 
-        # 7. Telemetri Günlüğüne Kaydet
+        # 8. Telemetri Günlüğüne Kaydet
         self.logger.log_telemetry_row(
             state=new_state.value,
             altitude_agl=telem.altitude_agl,
@@ -244,10 +277,17 @@ class ArchitectCore:
             "state": new_state.value,
             "altitude_agl": telem.altitude_agl,
             "ground_speed": telem.ground_speed,
+            "heading_deg": telem.heading_deg,
+            "pitch_deg": telem.pitch_deg,
+            "roll_deg": telem.roll_deg,
+            "battery_v": telem.voltage_v,
+            "wind_speed": self.latest_wind.speed_mps,
+            "wind_dir": self.latest_wind.direction_deg,
             "detections_count": len(detections),
             "locked_target": self.active_locked_target.target_type.value if self.active_locked_target else None,
             "payloads_remaining": self.actuator.get_remaining_payload_count(),
-            "failsafe_status": fs_level.value
+            "failsafe_status": fs_level.value,
+            "miss_distance": miss_dist
         }
 
     def start_mission(self):
@@ -264,20 +304,23 @@ class ArchitectCore:
         self.camera.release()
         print("[CORE] Görev tamamlandı veya durduruldu.")
 
-    def run_simulation(self, max_seconds: float = 40.0):
+    def run_simulation(self, max_seconds: float = 40.0, hud_interval: int = 15):
         """Tam uçuş simülasyonunu baştan sona icra eder."""
         self.start_mission()
         start_time = time.monotonic()
         print(f"[SIMULATOR] Simülasyon başlatıldı (Max: {max_seconds}s)...")
+        tick = 0
 
         while self.running and (time.monotonic() - start_time) < max_seconds:
             info = self.step()
+            tick += 1
             state_str = info["state"]
             alt = info["altitude_agl"]
             pl = info["payloads_remaining"]
             lock = info["locked_target"] or "YOK"
+            w_spd = info["wind_speed"]
 
-            print(f"\r[T+{time.monotonic()-start_time:.1f}s] DURUM: {state_str:<20} | İrtifa: {alt:5.1f}m | Kilit: {lock:<10} | Kalan Yük: {pl}", end="")
+            print(f"\r[T+{time.monotonic()-start_time:.1f}s] DURUM: {state_str:<20} | İrtifa: {alt:5.1f}m | Kilit: {lock:<10} | Rüzgar: {w_spd:3.1f}m/s | Yük: {pl}", end="")
 
             if state_str == MissionState.LANDED.value:
                 print("\n[SIMULATOR] İHA başarıyla iniş yaptı. Görev eksiksiz icra edildi!")
