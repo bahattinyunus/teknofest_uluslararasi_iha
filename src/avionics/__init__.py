@@ -3,6 +3,7 @@ UAV-Architect-Global: Avionics Subsystem
 """
 from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadSlot, PayloadStatus
+from src.avionics.preflight import PreflightChecker, PreflightReport, CheckItem
 
 __all__ = [
     "FailsafeManager",
@@ -10,5 +11,8 @@ __all__ = [
     "AvionicsHealth",
     "PayloadReleaseController",
     "PayloadSlot",
-    "PayloadStatus"
+    "PayloadStatus",
+    "PreflightChecker",
+    "PreflightReport",
+    "CheckItem"
 ]

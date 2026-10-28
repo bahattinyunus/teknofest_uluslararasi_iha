@@ -5,6 +5,7 @@ from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
 from src.telemetry.analytics import FlightAnalyticsEngine, FlightSummary, DropScore
+from src.telemetry.geo_export import FlightTrajectoryExporter
 
 __all__ = [
     "MavlinkBridge",
@@ -13,5 +14,6 @@ __all__ = [
     "TelemetryVisualizer",
     "FlightAnalyticsEngine",
     "FlightSummary",
-    "DropScore"
+    "DropScore",
+    "FlightTrajectoryExporter"
 ]
