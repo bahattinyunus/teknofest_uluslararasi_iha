@@ -9,6 +9,8 @@ from src.navigation.target_ekf import TargetEKF, TargetState
 from src.navigation.search_patterns import SearchPatternGenerator, Waypoint
 from src.navigation.drop_envelope import DropEnvelopeCalculator, DropEnvelopeStatus
 from src.navigation.approach_manager import ApproachManager, ApproachPhase, ApproachCommand
+from src.navigation.dead_reckoning import DeadReckoningNavigator, DeadReckoningState
+from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
 
 __all__ = [
     "BallisticsCalculator",
@@ -27,5 +29,9 @@ __all__ = [
     "DropEnvelopeStatus",
     "ApproachManager",
     "ApproachPhase",
-    "ApproachCommand"
+    "ApproachCommand",
+    "DeadReckoningNavigator",
+    "DeadReckoningState",
+    "GeofenceManager",
+    "GeofenceStatus"
 ]

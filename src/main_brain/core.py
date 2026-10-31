@@ -2,8 +2,9 @@
 TEKNOFEST 2026 Uluslararası İHA - Elit Komuta ve Karar Merkezi (ArchitectCore)
 =============================================================================
 Tüm alt sistemleri (Görüntü İşleme, Hedef Takip, EKF Konumlandırma, Rüzgar
-Kestiricisi, Görsel Denetimli Kontrol, RK4 Balistik Hesaplayıcı, Arama Rotaları,
-Aviyonik Güvenlik, Yük Bırakma ve MAVLink Telemetri) tek bir orkestrasyon altında
+Kestiricisi, Dead Reckoning Navigasyon, Güç ve Enerji Yönetimi, Geofence Sakınma,
+Görsel Denetimli Kontrol, RK4 Balistik Hesaplayıcı, Arama Rotaları, Aviyonik
+Güvenlik, Yük Bırakma ve MAVLink Telemetri) tek bir orkestrasyon altında
 senkronize eden ana zeka modülü.
 """
 
@@ -32,8 +33,13 @@ from src.navigation.mission_planner import MissionPlanner, MissionState, Mission
 from src.navigation.wind_estimator import WindEstimator, WindEstimate
 from src.navigation.target_ekf import TargetEKF, TargetState
 from src.navigation.search_patterns import SearchPatternGenerator, Waypoint
+from src.navigation.dead_reckoning import DeadReckoningNavigator, DeadReckoningState
+from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
+from src.navigation.drop_envelope import DropEnvelopeCalculator, DropEnvelopeStatus
+from src.navigation.approach_manager import ApproachManager, ApproachPhase, ApproachCommand
 from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadStatus
+from src.avionics.power_manager import BatteryPowerManager, PowerStatus
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
@@ -62,6 +68,7 @@ class ArchitectCore:
 
         # 2. Aviyonik ve Acil Durum (Failsafe)
         self.failsafe = FailsafeManager(self.config)
+        self.power_manager = BatteryPowerManager(nominal_capacity_mah=5000.0)
 
         # 3. Aktüatör ve Çift Yük Mekanizması
         self.actuator = PayloadReleaseController(self.config)
@@ -80,12 +87,16 @@ class ArchitectCore:
         self.detector = VisionDetector(self.config)
         self.tracker = TargetTracker(alpha=0.7)
 
-        # 5. Navigasyon, Güdüm ve EKF Kestiriciler
+        # 5. Navigasyon, Güdüm, Dead Reckoning & Geofence
         self.ballistics = BallisticsCalculator(self.config)
         self.servo_controller = VisualServoController(self.config)
         self.wind_estimator = WindEstimator(filter_alpha=0.2)
         self.target_ekf = TargetEKF()
         self.search_generator = SearchPatternGenerator()
+        self.dead_reckoning = DeadReckoningNavigator()
+        self.geofence = GeofenceManager(outer_radius_m=500.0, max_altitude_m=120.0)
+        self.drop_envelope = DropEnvelopeCalculator()
+        self.approach_manager = ApproachManager()
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -110,6 +121,9 @@ class ArchitectCore:
         self.latest_drop_prediction: Optional[DropPrediction] = None
         self.latest_wind = WindEstimate(0, 0, 0, 0, 0, 0, 0)
         self.latest_target_state: Optional[TargetState] = None
+        self.latest_power_status: Optional[PowerStatus] = None
+        self.latest_geofence_status: Optional[GeofenceStatus] = None
+        self.latest_dr_state: Optional[DeadReckoningState] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -135,10 +149,42 @@ class ArchitectCore:
             heading_deg=telem.heading_deg
         )
 
-        # 3. Aviyonik ve Failsafe Değerlendirmesi
+        # 3. Güç ve Batarya Enerji Yönetimi (Power Manager)
+        curr_amps = 14.0 if telem.altitude_agl > 1.0 else 1.5
+        self.latest_power_status = self.power_manager.update(
+            voltage_v=telem.voltage_v,
+            current_a=curr_amps,
+            distance_to_home_m=20.0,
+            headwind_mps=self.latest_wind.headwind_mps
+        )
+        if self.latest_power_status.is_pnr_reached and self.planner.state not in (MissionState.RETURN_TO_LAUNCH, MissionState.LANDING):
+            print("[CORE] UYARI: DÖNÜŞÜ OLMAYAN NOKTA (PNR) ENERJİ SINIRINA ULAŞILDI! RTL TETİKLENİYOR.")
+            self.comms.trigger_rtl()
+
+        # 4. Dead Reckoning Navigasyon (GPS Kesintisi Yedekliliği)
+        self.latest_dr_state = self.dead_reckoning.update(
+            gps_pos_xy=(0.0, 0.0),
+            gps_vel_xy=(telem.vx, telem.vy),
+            satellites_visible=telem.satellites_visible,
+            flow_rad_s_xy=(0.0, 0.0),
+            altitude_agl_m=telem.altitude_agl,
+            body_accel_xy=(0.0, 0.0),
+            heading_deg=telem.heading_deg
+        )
+
+        # 5. Geofence & Çokgen No-Fly Zone Denetimi
+        self.latest_geofence_status = self.geofence.evaluate_geofence(
+            uav_pos_xy=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m),
+            altitude_agl_m=telem.altitude_agl
+        )
+        if self.latest_geofence_status.requires_avoidance:
+            av_x, av_y, av_z = self.latest_geofence_status.avoidance_velocity_ned
+            self.comms.send_velocity_ned(av_x, av_y, av_z)
+
+        # 6. Aviyonik ve Failsafe Değerlendirmesi
         health = AvionicsHealth(
             voltage_v=telem.voltage_v,
-            current_a=15.0,
+            current_a=curr_amps,
             altitude_agl_m=telem.altitude_agl,
             distance_from_home_m=20.0,
             last_heartbeat_time=telem.last_packet_time,
@@ -149,7 +195,7 @@ class ArchitectCore:
         if self.failsafe.failsafe_triggered:
             self.comms.trigger_rtl()
 
-        # 4. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
+        # 7. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
         ret, frame = self.camera.read_frame()
         detections = []
         if ret and frame is not None:
@@ -170,7 +216,7 @@ class ArchitectCore:
         target_a_locked = bool(self.active_locked_target and self.active_locked_target.target_type == TargetType.TARGET_A)
         target_b_locked = bool(self.active_locked_target and self.active_locked_target.target_type == TargetType.TARGET_B)
 
-        # 5. Target EKF ile Yer Konumunun ve Balistik Bırakmanın Hesaplanması
+        # 8. Target EKF ile Yer Konumunun ve Balistik Bırakmanın Hesaplanması
         ballistics_ready = False
         lead_dist = 0.0
         miss_dist = 999.0
@@ -179,7 +225,7 @@ class ArchitectCore:
             # EKF yer projeksiyonunu güncelle
             self.latest_target_state = self.target_ekf.update(
                 norm_offset_xy=self.active_locked_target.normalized_offset,
-                uav_pos_xy=(0.0, 0.0),
+                uav_pos_xy=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m),
                 altitude_agl=max(2.0, telem.altitude_agl),
                 roll_deg=telem.roll_deg,
                 pitch_deg=telem.pitch_deg,
@@ -203,7 +249,7 @@ class ArchitectCore:
 
             # RK4 Balistik tahmin (Rüzgar kestirimi entegre edilmiş)
             prediction = self.ballistics.predict_impact(
-                uav_pos_xy=(0.0, 0.0),
+                uav_pos_xy=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m),
                 target_pos_xy=(t_ground_x, t_ground_y),
                 velocity_xy=(telem.vx if abs(telem.vx) > 0.1 else 2.5, telem.vy),
                 altitude_m=max(5.0, telem.altitude_agl),
@@ -212,9 +258,19 @@ class ArchitectCore:
             self.latest_drop_prediction = prediction
             lead_dist = prediction.lead_distance_m
             miss_dist = prediction.predicted_miss_distance_m
-            ballistics_ready = prediction.is_within_tolerance or (cmd.is_centered and miss_dist < 3.5)
 
-        # 6. Görev Durum Makinesini Güncelle
+            # İstatiksel Saçılma Zarfı Değerlendirmesi
+            envelope = self.drop_envelope.evaluate_envelope(
+                impact_xy=prediction.impact_point_xy,
+                target_xy=(t_ground_x, t_ground_y),
+                time_of_flight_s=prediction.time_of_flight_s,
+                ground_speed_mps=telem.ground_speed,
+                altitude_m=telem.altitude_agl
+            )
+
+            ballistics_ready = envelope.is_authorized or (prediction.is_within_tolerance or (cmd.is_centered and miss_dist < 3.5))
+
+        # 9. Görev Durum Makinesini Güncelle
         prev_state = self.planner.state
         new_state = self.planner.update(
             altitude_agl=telem.altitude_agl,
@@ -226,7 +282,7 @@ class ArchitectCore:
             failsafe_triggered=self.failsafe.failsafe_triggered
         )
 
-        # 7. Duruma Özel Eylemler
+        # 10. Duruma Özel Eylemler
         if new_state == MissionState.DROPPING_PAYLOAD_1 and prev_state != MissionState.DROPPING_PAYLOAD_1:
             print("[CORE] >>> HEDEF A'YA 1. YÜK (KIRMIZI) BIRAKILIYOR! <<<")
             self.actuator.release_payload_for_target("TARGET_A")
@@ -257,7 +313,7 @@ class ArchitectCore:
             elif new_state == MissionState.LANDING:
                 telem.altitude_agl = max(0.0, telem.altitude_agl - 1.2)
 
-        # 8. Telemetri Günlüğüne Kaydet
+        # 11. Telemetri Günlüğüne Kaydet
         self.logger.log_telemetry_row(
             state=new_state.value,
             altitude_agl=telem.altitude_agl,
@@ -281,13 +337,16 @@ class ArchitectCore:
             "pitch_deg": telem.pitch_deg,
             "roll_deg": telem.roll_deg,
             "battery_v": telem.voltage_v,
+            "soc_pct": self.latest_power_status.state_of_charge_pct if self.latest_power_status else 100.0,
+            "rem_flight_time_min": self.latest_power_status.remaining_flight_time_min if self.latest_power_status else 15.0,
             "wind_speed": self.latest_wind.speed_mps,
             "wind_dir": self.latest_wind.direction_deg,
             "detections_count": len(detections),
             "locked_target": self.active_locked_target.target_type.value if self.active_locked_target else None,
             "payloads_remaining": self.actuator.get_remaining_payload_count(),
             "failsafe_status": fs_level.value,
-            "miss_distance": miss_dist
+            "miss_distance": miss_dist,
+            "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
         }
 
     def start_mission(self):
@@ -309,11 +368,9 @@ class ArchitectCore:
         self.start_mission()
         start_time = time.monotonic()
         print(f"[SIMULATOR] Simülasyon başlatıldı (Max: {max_seconds}s)...")
-        tick = 0
 
         while self.running and (time.monotonic() - start_time) < max_seconds:
             info = self.step()
-            tick += 1
             state_str = info["state"]
             alt = info["altitude_agl"]
             pl = info["payloads_remaining"]
