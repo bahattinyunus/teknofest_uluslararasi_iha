@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-75%2F75%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-93%2F93%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 
@@ -266,7 +266,8 @@ stateDiagram-v2
 │   │   ├── tracker.py             # Zamansal EMA Hedef Takipçisi ve Sönümleyici
 │   │   ├── camera.py              # CSI/USB/RTSP ve Sentetik Kamera Sürücüsü
 │   │   ├── calibration.py         # Lens Distorsiyon Giderme ve İçsel Matris Kalibrasyonu
-│   │   └── dataset_generator.py   # YOLO Formatlı Sentetik Veri Seti Üreteci
+│   │   ├── dataset_generator.py   # YOLO Formatlı Sentetik Veri Seti Üreteci
+│   │   └── target_classifier.py   # Geometrik Simetri ve Çoklu Hedef Takip / Filtreleme
 │   ├── navigation/                # Navigasyon, Güdüm ve Durum Makinesi
 │   │   ├── __init__.py
 │   │   ├── ballistics.py          # Runge-Kutta 4 (RK4) Balistik Yörünge Hesaplayıcı
@@ -278,16 +279,19 @@ stateDiagram-v2
 │   │   ├── drop_envelope.py       # Monte Carlo Hata Elipsi ve Bırakma Karar Koridoru
 │   │   ├── dead_reckoning.py      # GPS Kaybında Optik Akış & IMU Ölü Seyrüsefer
 │   │   ├── geofence_avoider.py    # İtiş Alanlı Poligon NFZ & 120m Tavan Sakınma
+│   │   ├── trajectory_optimizer.py # Quintic Spline 3B Minimum-Jerk Yörünge Optimizasyonu
 │   │   └── mission_planner.py     # FSM Görev Durum Makinesi (1. & 2. Görev)
 │   ├── avionics/                  # Aviyonik, Güvenlik ve Aktüatörler
 │   │   ├── __init__.py
 │   │   ├── failsafe.py            # 120m AGL Geofence, LiPo ve Link Bekçisi
 │   │   ├── actuator.py            # Çift Yük Bırakma Güvenlikli Servo Kontrolcüsü
-│   │   └── power_manager.py       # 4S LiPo Peukert Modeli & PNR Enerji Eşiği
+│   │   ├── power_manager.py       # 4S LiPo Peukert Modeli & PNR Enerji Eşiği
+│   │   └── sensor_fusion_validator.py # Çoklu Sensör TMR Oylama, Hata Tespiti & İzolasyonu (FDIR)
 │   ├── telemetry/                 # Haberleşme ve Veri Kaydı
 │   │   ├── __init__.py
 │   │   ├── comms.py               # MAVLink v2 Çift Yönlü Köprü (Gerçek/Mock)
 │   │   ├── sitl_server.py         # UDP Port 14550 Otonom SITL Mock Autopilot
+│   │   ├── mavlink_hil.py         # Binary MAVLink v2 HIL/SITL Protokol ve Çerçeve Motoru
 │   │   ├── logger.py              # CSV/JSONL Kara Kutu Telemetri Kaydedici
 │   │   ├── analytics.py           # 2026 Şartname Puanlama ve Kural Uyumluluk Motoru
 │   │   ├── geo_export.py          # GeoJSON & KML Rota ve Bırakma Dışa Aktarıcı
@@ -295,7 +299,7 @@ stateDiagram-v2
 │   └── web_gcs/                   # Web Tabanlı Yer Kontrol İstasyonu (GCS)
 │       ├── __init__.py
 │       └── server.py              # Canlı Radar, Gyro Ufuk ve REST API Sunucusu
-├── tests/                         # Otomasyonel Test Paketi (75 Test - %100 Başarı)
+├── tests/                         # Otomasyonel Test Paketi (93 Test - %100 Başarı)
 │   ├── __init__.py
 │   ├── test_actuator.py           # Çift Yük Bırakma Mekanizması Testleri
 │   ├── test_approach_manager.py   # Rüzgar Yaklaşma ve Pas Geçme Testleri
@@ -315,7 +319,11 @@ stateDiagram-v2
 │   ├── test_preflight.py          # Uçuş Öncesi Donanım Checklist Testleri
 │   ├── test_search_patterns.py    # ∞ Lemniskat ve Grid Rota Testleri
 │   ├── test_sitl_server.py        # MAVLink SITL Fizik Motoru Testleri
+│   ├── test_mavlink_hil.py        # MAVLink v2 HIL Binary Protokol Testleri
+│   ├── test_sensor_fusion_validator.py # Çoklu Sensör FDIR ve Oylama Testleri
+│   ├── test_target_classifier.py  # Hedef Sınıflandırma ve Takip Doğrulama Testleri
 │   ├── test_target_ekf.py         # EKF Hedef Yansıtma ve Yakınsama Testleri
+│   ├── test_trajectory_optimizer.py # 3B Minimum-Jerk Yörünge ve Eğrilik Testleri
 │   ├── test_vision.py             # Altıgen/Üçgen Sınıflandırma ve Takip Testleri
 │   ├── test_web_gcs.py            # Web GCS Endpoint ve API Testleri
 │   └── test_wind_estimator.py     # Rüzgar Vektörü Kestirim Testleri
@@ -401,7 +409,7 @@ python scripts/mission_control.py --preflight
 python scripts/mission_control.py --sitl
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (75 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (93 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
@@ -473,13 +481,14 @@ tests/test_wind_estimator.py::test_wind_estimator_crosswind PASSED       [ 97%]
 
 tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-tests/test_dead_reckoning.py::test_dead_reckoning_gps_loss_switches_to_optical_flow PASSED [ 80%]
-tests/test_geofence_avoider.py::test_geofence_nfz_violation_triggers_repulsion PASSED [ 85%]
-tests/test_power_manager.py::test_power_manager_pnr_threshold_detection PASSED [ 90%]
-tests/test_sitl_server.py::test_sitl_server_lifecycle PASSED             [ 95%]
-tests/test_mission_control.py::test_mission_control_cli_preflight PASSED [100%]
+tests/test_dead_reckoning.py::test_dead_reckoning_gps_loss_switches_to_optical_flow PASSED [ 75%]
+tests/test_mavlink_hil.py::test_mavlink_command_long_roundtrip PASSED    [ 80%]
+tests/test_sensor_fusion_validator.py::test_validator_gps_altitude_glitch_isolation PASSED [ 85%]
+tests/test_target_classifier.py::test_tracking_temporal_confirmation PASSED [ 90%]
+tests/test_trajectory_optimizer.py::test_figure_eight_trajectory_smoothness PASSED [ 95%]
+tests/test_mission_control.py::test_mission_control_cli_fdir PASSED      [100%]
 
-============================= 75 passed in 3.14s ==============================
+============================= 93 passed in 7.04s ==============================
 
 ```
 

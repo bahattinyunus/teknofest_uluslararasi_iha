@@ -7,6 +7,13 @@ from src.telemetry.visualizer import TelemetryVisualizer
 from src.telemetry.analytics import FlightAnalyticsEngine, FlightSummary, DropScore
 from src.telemetry.geo_export import FlightTrajectoryExporter
 from src.telemetry.sitl_server import ArduPilotSITLServer
+from src.telemetry.mavlink_hil import (
+    MAVLinkHILEngine,
+    MAVType,
+    MAVAutopilot,
+    MAVCmd,
+    HILMetrics
+)
 
 __all__ = [
     "MavlinkBridge",
@@ -17,5 +24,10 @@ __all__ = [
     "FlightSummary",
     "DropScore",
     "FlightTrajectoryExporter",
-    "ArduPilotSITLServer"
+    "ArduPilotSITLServer",
+    "MAVLinkHILEngine",
+    "MAVType",
+    "MAVAutopilot",
+    "MAVCmd",
+    "HILMetrics"
 ]

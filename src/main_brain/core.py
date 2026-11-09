@@ -37,9 +37,11 @@ from src.navigation.dead_reckoning import DeadReckoningNavigator, DeadReckoningS
 from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
 from src.navigation.drop_envelope import DropEnvelopeCalculator, DropEnvelopeStatus
 from src.navigation.approach_manager import ApproachManager, ApproachPhase, ApproachCommand
+from src.navigation.trajectory_optimizer import TrajectoryOptimizer, TrajectoryMetrics
 from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadStatus
 from src.avionics.power_manager import BatteryPowerManager, PowerStatus
+from src.avionics.sensor_fusion_validator import SensorFusionValidator, HealthLevel, FDIRAction, FDIRReport
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
@@ -97,6 +99,8 @@ class ArchitectCore:
         self.geofence = GeofenceManager(outer_radius_m=500.0, max_altitude_m=120.0)
         self.drop_envelope = DropEnvelopeCalculator()
         self.approach_manager = ApproachManager()
+        self.trajectory_optimizer = TrajectoryOptimizer()
+        self.sensor_validator = SensorFusionValidator()
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -124,6 +128,7 @@ class ArchitectCore:
         self.latest_power_status: Optional[PowerStatus] = None
         self.latest_geofence_status: Optional[GeofenceStatus] = None
         self.latest_dr_state: Optional[DeadReckoningState] = None
+        self.latest_fdir_report: Optional[FDIRReport] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -192,6 +197,20 @@ class ArchitectCore:
             ekf_healthy=True
         )
         fs_level, fs_reason = self.failsafe.evaluate(health)
+
+        # 6.1 Çoklu Sensör FDIR Sağlık Denetimi
+        self.latest_fdir_report = self.sensor_validator.validate_sensors(
+            timestamp=telem.last_packet_time,
+            baro_alt=telem.altitude_agl,
+            gps_alt=telem.altitude_agl,
+            gps_vx=telem.vx,
+            gps_vy=telem.vy,
+            mag_heading=telem.heading_deg,
+            gyro_yaw=telem.heading_deg
+        )
+        if self.latest_fdir_report.recommended_action == FDIRAction.TRIGGER_RTL:
+            self.comms.trigger_rtl()
+
         if self.failsafe.failsafe_triggered:
             self.comms.trigger_rtl()
 
@@ -345,6 +364,7 @@ class ArchitectCore:
             "locked_target": self.active_locked_target.target_type.value if self.active_locked_target else None,
             "payloads_remaining": self.actuator.get_remaining_payload_count(),
             "failsafe_status": fs_level.value,
+            "fdir_health": self.latest_fdir_report.health_level.value if self.latest_fdir_report else "NOMINAL",
             "miss_distance": miss_dist,
             "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
         }

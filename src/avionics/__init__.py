@@ -5,6 +5,12 @@ from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadSlot, PayloadStatus
 from src.avionics.preflight import PreflightChecker, PreflightReport, CheckItem
 from src.avionics.power_manager import BatteryPowerManager, PowerStatus
+from src.avionics.sensor_fusion_validator import (
+    SensorFusionValidator,
+    HealthLevel,
+    FDIRAction,
+    FDIRReport
+)
 
 __all__ = [
     "FailsafeManager",
@@ -17,5 +23,9 @@ __all__ = [
     "PreflightReport",
     "CheckItem",
     "BatteryPowerManager",
-    "PowerStatus"
+    "PowerStatus",
+    "SensorFusionValidator",
+    "HealthLevel",
+    "FDIRAction",
+    "FDIRReport"
 ]

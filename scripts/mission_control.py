@@ -27,6 +27,8 @@ from src.telemetry.geo_export import FlightTrajectoryExporter
 from src.vision.dataset_generator import SyntheticDatasetGenerator
 from src.telemetry.sitl_server import ArduPilotSITLServer
 from src.web_gcs.server import WebGCSServer
+from src.navigation.trajectory_optimizer import TrajectoryOptimizer
+from src.avionics.sensor_fusion_validator import SensorFusionValidator
 
 
 MENU_BANNER = """
@@ -41,7 +43,9 @@ MENU_BANNER = """
 [6] 🗺️ 3B Uçuş Yolunu KML (Google Earth) ve GeoJSON Olarak Dışa Aktar
 [7] 🎯 Kamera Netlik, Renk Eşikleme ve Hedef Tespit Teşhisi
 [8] 🖼️ YOLOv10/v8 Uyumlu Sentetik Veri Seti Üret (Mavi Altıgen / Kırmızı Üçgen)
-[9] 🧪 Tüm Otomasyonel Test Paketini Çalıştır (73 Test)
+[9] 📈 3B Minimum-Jerk Yörünge Optimizasyonu Profili (Task 1 & 2)
+[10] 🛡️ Sensör Çapraz Sağlık & FDIR Güvenlik Doğrulaması
+[11] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -129,6 +133,34 @@ def run_dataset_gen(count=20):
     print(f"✅ Veri seti dizini: {out}")
 
 
+def run_trajectory():
+    print("\n📈 3B Yörünge Optimizasyonu hesaplanıyor (Görev 1 Sonsuz ∞ Manevrası)...")
+    opt = TrajectoryOptimizer(max_velocity=16.0, max_acceleration=4.0)
+    pts, metrics = opt.optimize_figure_eight(center=(0.0, 0.0, 30.0), radius=35.0, num_waypoints=16)
+    print(f"✅ Optimize Edilen Nokta Sayısı: {metrics.num_samples}")
+    print(f"⏱️ Toplam Tahmini Uçuş Süresi: {metrics.total_duration_s} sn")
+    print(f"📏 Toplam Rota Uzunluğu: {metrics.total_distance_m} m")
+    print(f"⚡ Azami Hız: {metrics.max_speed_mps} m/s | Ortalama: {metrics.average_speed_mps} m/s")
+    print(f"🔋 Tahmini Tüketim: {metrics.estimated_energy_wh} Wh")
+    print("🎯 İlk 3 ve Son 3 Yörünge Noktası:")
+    for p in pts[:3]:
+        print(f"   T+{p.time_s:5.2f}s | Konum: ({p.x:6.2f}, {p.y:6.2f}, {p.z:5.1f})m | Hız: {p.speed:4.1f}m/s | Eğrilik: {p.curvature:.4f}")
+    print("   ...")
+    for p in pts[-3:]:
+        print(f"   T+{p.time_s:5.2f}s | Konum: ({p.x:6.2f}, {p.y:6.2f}, {p.z:5.1f})m | Hız: {p.speed:4.1f}m/s | Eğrilik: {p.curvature:.4f}")
+
+
+def run_fdir():
+    print("\n🛡️ Çoklu Sensör FDIR (Hata Tespiti ve İzolasyonu) Testi...")
+    validator = SensorFusionValidator()
+    # Nominal case
+    rep1 = validator.validate_sensors(timestamp=10.0, baro_alt=30.0, lidar_alt=29.8, gps_alt=30.2, gps_vx=12.0, gps_vy=0.5, flow_vx=11.9, flow_vy=0.4)
+    print(f"1. Nominal Sensör Durumu: Sağlık = {rep1.health_level.value} | Eylem = {rep1.recommended_action.value}")
+    # Glitch case
+    rep2 = validator.validate_sensors(timestamp=11.0, baro_alt=30.0, lidar_alt=29.9, gps_alt=85.0, gps_vx=12.0, gps_vy=0.5)
+    print(f"2. GPS Glitch Enjeksiyonu: Sağlık = {rep2.health_level.value} | İzolasyon = {rep2.isolated_sensors} | Tanılar = {rep2.diagnostic_messages}")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -137,7 +169,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-9]: ").strip()
+        choice = input("Seçiminiz [0-11]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -155,6 +187,10 @@ def interactive_menu():
         elif choice == "8":
             run_dataset_gen()
         elif choice == "9":
+            run_trajectory()
+        elif choice == "10":
+            run_fdir()
+        elif choice == "11":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -174,6 +210,8 @@ def main():
     parser.add_argument("--export", action="store_true", help="Uçuş haritalarını dışa aktar")
     parser.add_argument("--camera-check", action="store_true", help="Kamera teşhisini çalıştır")
     parser.add_argument("--generate-dataset", action="store_true", help="YOLO sentetik veri seti üret")
+    parser.add_argument("--trajectory", action="store_true", help="3B Yörünge optimizasyonunu çalıştır")
+    parser.add_argument("--fdir", action="store_true", help="Sensör FDIR teşhisini çalıştır")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -194,6 +232,10 @@ def main():
         run_camera()
     elif args.generate_dataset:
         run_dataset_gen()
+    elif args.trajectory:
+        run_trajectory()
+    elif args.fdir:
+        run_fdir()
     elif args.test:
         run_tests()
     else:

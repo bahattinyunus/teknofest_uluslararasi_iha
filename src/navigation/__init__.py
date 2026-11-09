@@ -11,6 +11,7 @@ from src.navigation.drop_envelope import DropEnvelopeCalculator, DropEnvelopeSta
 from src.navigation.approach_manager import ApproachManager, ApproachPhase, ApproachCommand
 from src.navigation.dead_reckoning import DeadReckoningNavigator, DeadReckoningState
 from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
+from src.navigation.trajectory_optimizer import TrajectoryOptimizer, TrajectoryPoint, TrajectoryMetrics
 
 __all__ = [
     "BallisticsCalculator",
@@ -33,5 +34,8 @@ __all__ = [
     "DeadReckoningNavigator",
     "DeadReckoningState",
     "GeofenceManager",
-    "GeofenceStatus"
+    "GeofenceStatus",
+    "TrajectoryOptimizer",
+    "TrajectoryPoint",
+    "TrajectoryMetrics"
 ]

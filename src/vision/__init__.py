@@ -6,6 +6,7 @@ from src.vision.tracker import TargetTracker
 from src.vision.camera import CameraInterface
 from src.vision.dataset_generator import SyntheticDatasetGenerator
 from src.vision.calibration import CameraCalibrator
+from src.vision.target_classifier import TargetClassifier, TrackedTarget
 
 __all__ = [
     "VisionDetector",
@@ -16,5 +17,7 @@ __all__ = [
     "TargetTracker",
     "CameraInterface",
     "SyntheticDatasetGenerator",
-    "CameraCalibrator"
+    "CameraCalibrator",
+    "TargetClassifier",
+    "TrackedTarget"
 ]

@@ -32,3 +32,29 @@ def test_mission_control_cli_preflight():
     assert res.returncode == 0
     assert "UÇUŞ ÖNCESİ OTOMATİK CHECKLIST" in res.stdout
     assert "KALKIŞA UYGUN" in res.stdout
+
+
+def test_mission_control_cli_trajectory():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--trajectory"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "3B Yörünge Optimizasyonu" in res.stdout
+    assert "Optimize Edilen Nokta Sayısı" in res.stdout
+
+
+def test_mission_control_cli_fdir():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--fdir"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Çoklu Sensör FDIR" in res.stdout
+    assert "Nominal Sensör Durumu" in res.stdout
