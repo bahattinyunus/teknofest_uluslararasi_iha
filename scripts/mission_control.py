@@ -29,6 +29,9 @@ from src.telemetry.sitl_server import ArduPilotSITLServer
 from src.web_gcs.server import WebGCSServer
 from src.navigation.trajectory_optimizer import TrajectoryOptimizer
 from src.avionics.sensor_fusion_validator import SensorFusionValidator
+from src.navigation.mission_playbook import MissionPlaybook
+from src.telemetry.debrief_engine import MissionDebriefEngine
+import glob
 
 
 MENU_BANNER = """
@@ -45,7 +48,9 @@ MENU_BANNER = """
 [8] 🖼️ YOLOv10/v8 Uyumlu Sentetik Veri Seti Üret (Mavi Altıgen / Kırmızı Üçgen)
 [9] 📈 3B Minimum-Jerk Yörünge Optimizasyonu Profili (Task 1 & 2)
 [10] 🛡️ Sensör Çapraz Sağlık & FDIR Güvenlik Doğrulaması
-[11] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
+[11] 📜 Görev Playbook & Fırsatçı Dinamik Hedef Yeniden Planlama
+[12] 📑 Kara Kutu (Blackbox) Uçuş Brifingi & CEP İstatistik Raporu
+[13] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -161,6 +166,51 @@ def run_fdir():
     print(f"2. GPS Glitch Enjeksiyonu: Sağlık = {rep2.health_level.value} | İzolasyon = {rep2.isolated_sensors} | Tanılar = {rep2.diagnostic_messages}")
 
 
+def run_playbook():
+    print("\n📜 Görev Playbook & Dinamik Hedef Yeniden Sıralama Simülasyonu...")
+    playbook = MissionPlaybook()
+    st = playbook.update((0.0, 0.0, 0.0))
+    print(f"Başlangıç Aşaması: {st.current_phase.value} (Aşama {st.phase_index + 1}/{st.total_phases})")
+    # Simulate advance to search
+    playbook.current_phase_idx = 3
+    playbook._build_phase_waypoints()
+    print(f"Arama Moduna Geçildi: Hedef Arama Alanı Waypoint Sayısı = {len(playbook.active_waypoints)}")
+    # Opportunity replan trigger: Target B spotted while en route to Target A
+    playbook.current_phase_idx = 4
+    playbook._build_phase_waypoints()
+    replan_ok = playbook.evaluate_opportunity_replan(
+        current_uav_pos=(10.0, 5.0),
+        detected_target_type="TARGET_B",
+        target_pos=(25.0, 5.0),
+        headwind_mps=2.5
+    )
+    st_replan = playbook.update((10.0, 5.0, 30.0))
+    print(f"Fırsatçı Yeniden Sıralama Tetiklendi: {replan_ok}")
+    print(f"Yeni Öncelikli Aşama: {st_replan.current_phase.value} | Atanan Yük Haznesi: Slot {st_replan.payload_slot_assigned}")
+
+
+def run_debrief():
+    print("\n📑 Kara Kutu (Blackbox) Uçuş Brifingi...")
+    logs = sorted(glob.glob("logs/flight_telemetry_*.csv"), reverse=True)
+    if not logs:
+        print("⚠️ Henüz kayıtlı uçuş günlüğü (.csv) bulunamadı.")
+        return
+    engine = MissionDebriefEngine()
+    target_log = None
+    metrics = None
+    for log_path in logs:
+        m = engine.analyze_log_file(log_path)
+        if m is not None:
+            target_log = log_path
+            metrics = m
+            break
+    if not metrics or not target_log:
+        print("⚠️ Çözümlenebilecek uçuş verisi içeren telemetri günlüğü bulunamadı.")
+        return
+    report_md = engine.generate_markdown_report(metrics, target_log)
+    print(report_md)
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -169,7 +219,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-11]: ").strip()
+        choice = input("Seçiminiz [0-13]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -191,6 +241,10 @@ def interactive_menu():
         elif choice == "10":
             run_fdir()
         elif choice == "11":
+            run_playbook()
+        elif choice == "12":
+            run_debrief()
+        elif choice == "13":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -212,6 +266,8 @@ def main():
     parser.add_argument("--generate-dataset", action="store_true", help="YOLO sentetik veri seti üret")
     parser.add_argument("--trajectory", action="store_true", help="3B Yörünge optimizasyonunu çalıştır")
     parser.add_argument("--fdir", action="store_true", help="Sensör FDIR teşhisini çalıştır")
+    parser.add_argument("--playbook", action="store_true", help="Görev playbook dinamik planlamasını çalıştır")
+    parser.add_argument("--debrief", action="store_true", help="Kara kutu debriefing raporu oluştur")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -236,6 +292,10 @@ def main():
         run_trajectory()
     elif args.fdir:
         run_fdir()
+    elif args.playbook:
+        run_playbook()
+    elif args.debrief:
+        run_debrief()
     elif args.test:
         run_tests()
     else:

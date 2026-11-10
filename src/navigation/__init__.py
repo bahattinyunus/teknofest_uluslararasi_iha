@@ -12,6 +12,13 @@ from src.navigation.approach_manager import ApproachManager, ApproachPhase, Appr
 from src.navigation.dead_reckoning import DeadReckoningNavigator, DeadReckoningState
 from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
 from src.navigation.trajectory_optimizer import TrajectoryOptimizer, TrajectoryPoint, TrajectoryMetrics
+from src.navigation.l1_adaptive_controller import L1AdaptiveController, DisturbanceState
+from src.navigation.mission_playbook import (
+    MissionPlaybook,
+    PlaybookPhase,
+    PlaybookWaypoint,
+    PlaybookStatus
+)
 
 __all__ = [
     "BallisticsCalculator",
@@ -37,5 +44,11 @@ __all__ = [
     "GeofenceStatus",
     "TrajectoryOptimizer",
     "TrajectoryPoint",
-    "TrajectoryMetrics"
+    "TrajectoryMetrics",
+    "L1AdaptiveController",
+    "DisturbanceState",
+    "MissionPlaybook",
+    "PlaybookPhase",
+    "PlaybookWaypoint",
+    "PlaybookStatus"
 ]

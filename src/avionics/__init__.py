@@ -11,6 +11,11 @@ from src.avionics.sensor_fusion_validator import (
     FDIRAction,
     FDIRReport
 )
+from src.avionics.terrain_following import (
+    TerrainFollowingController,
+    AltitudeMode,
+    TerrainState
+)
 
 __all__ = [
     "FailsafeManager",
@@ -27,5 +32,8 @@ __all__ = [
     "SensorFusionValidator",
     "HealthLevel",
     "FDIRAction",
-    "FDIRReport"
+    "FDIRReport",
+    "TerrainFollowingController",
+    "AltitudeMode",
+    "TerrainState"
 ]

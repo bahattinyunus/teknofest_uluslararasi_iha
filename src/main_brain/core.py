@@ -38,10 +38,13 @@ from src.navigation.geofence_avoider import GeofenceManager, GeofenceStatus
 from src.navigation.drop_envelope import DropEnvelopeCalculator, DropEnvelopeStatus
 from src.navigation.approach_manager import ApproachManager, ApproachPhase, ApproachCommand
 from src.navigation.trajectory_optimizer import TrajectoryOptimizer, TrajectoryMetrics
+from src.navigation.l1_adaptive_controller import L1AdaptiveController, DisturbanceState
+from src.navigation.mission_playbook import MissionPlaybook, PlaybookStatus
 from src.avionics.failsafe import FailsafeManager, FailsafeLevel, AvionicsHealth
 from src.avionics.actuator import PayloadReleaseController, PayloadStatus
 from src.avionics.power_manager import BatteryPowerManager, PowerStatus
 from src.avionics.sensor_fusion_validator import SensorFusionValidator, HealthLevel, FDIRAction, FDIRReport
+from src.avionics.terrain_following import TerrainFollowingController, TerrainState
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
@@ -101,6 +104,9 @@ class ArchitectCore:
         self.approach_manager = ApproachManager()
         self.trajectory_optimizer = TrajectoryOptimizer()
         self.sensor_validator = SensorFusionValidator()
+        self.adaptive_controller = L1AdaptiveController()
+        self.mission_playbook = MissionPlaybook()
+        self.terrain_controller = TerrainFollowingController(target_cruise_agl_m=30.0)
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -129,6 +135,9 @@ class ArchitectCore:
         self.latest_geofence_status: Optional[GeofenceStatus] = None
         self.latest_dr_state: Optional[DeadReckoningState] = None
         self.latest_fdir_report: Optional[FDIRReport] = None
+        self.latest_disturbance: Optional[DisturbanceState] = None
+        self.latest_terrain_state: Optional[TerrainState] = None
+        self.latest_playbook_status: Optional[PlaybookStatus] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -213,6 +222,28 @@ class ArchitectCore:
 
         if self.failsafe.failsafe_triggered:
             self.comms.trigger_rtl()
+
+        # 6.2 L1 Adaptif Bozucu Tahmini & Rüzgar Darbesi Kompanzasyonu
+        self.latest_disturbance = self.adaptive_controller.update(
+            timestamp=telem.last_packet_time,
+            measured_vel_xyz=(telem.vx, telem.vy, 0.0),
+            applied_accel_xyz=(0.0, 0.0, 0.0),
+            desired_accel_xyz=(0.0, 0.0, 0.0)
+        )
+
+        # 6.3 Lazer İrtifa Takibi & Flare İniş Yönetimi
+        self.latest_terrain_state = self.terrain_controller.update(
+            timestamp=telem.last_packet_time,
+            raw_laser_range_m=telem.altitude_agl,
+            roll_deg=telem.roll_deg,
+            pitch_deg=telem.pitch_deg,
+            is_landing_commanded=(self.planner.state == MissionState.LANDING)
+        )
+
+        # 6.4 Görev Playbook Orkestrasyonu
+        self.latest_playbook_status = self.mission_playbook.update(
+            current_uav_xyz=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m, telem.altitude_agl)
+        )
 
         # 7. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
         ret, frame = self.camera.read_frame()
@@ -365,6 +396,9 @@ class ArchitectCore:
             "payloads_remaining": self.actuator.get_remaining_payload_count(),
             "failsafe_status": fs_level.value,
             "fdir_health": self.latest_fdir_report.health_level.value if self.latest_fdir_report else "NOMINAL",
+            "disturbance_mps2": self.latest_disturbance.gust_magnitude_mps2 if self.latest_disturbance else 0.0,
+            "terrain_mode": self.latest_terrain_state.mode.value if self.latest_terrain_state else "HOLD_AGL",
+            "playbook_phase": self.latest_playbook_status.current_phase.value if self.latest_playbook_status else "STANDBY",
             "miss_distance": miss_dist,
             "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
         }

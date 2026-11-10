@@ -58,3 +58,28 @@ def test_mission_control_cli_fdir():
     assert res.returncode == 0
     assert "Çoklu Sensör FDIR" in res.stdout
     assert "Nominal Sensör Durumu" in res.stdout
+
+
+def test_mission_control_cli_playbook():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--playbook"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Görev Playbook" in res.stdout
+    assert "Fırsatçı Yeniden Sıralama" in res.stdout
+
+
+def test_mission_control_cli_debrief():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--debrief"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Kara Kutu" in res.stdout

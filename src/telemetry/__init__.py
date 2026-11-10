@@ -14,6 +14,7 @@ from src.telemetry.mavlink_hil import (
     MAVCmd,
     HILMetrics
 )
+from src.telemetry.debrief_engine import MissionDebriefEngine, DebriefMetrics
 
 __all__ = [
     "MavlinkBridge",
@@ -29,5 +30,7 @@ __all__ = [
     "MAVType",
     "MAVAutopilot",
     "MAVCmd",
-    "HILMetrics"
+    "HILMetrics",
+    "MissionDebriefEngine",
+    "DebriefMetrics"
 ]

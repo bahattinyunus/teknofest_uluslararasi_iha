@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-93%2F93%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-109%2F109%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 
@@ -280,18 +280,22 @@ stateDiagram-v2
 │   │   ├── dead_reckoning.py      # GPS Kaybında Optik Akış & IMU Ölü Seyrüsefer
 │   │   ├── geofence_avoider.py    # İtiş Alanlı Poligon NFZ & 120m Tavan Sakınma
 │   │   ├── trajectory_optimizer.py # Quintic Spline 3B Minimum-Jerk Yörünge Optimizasyonu
+│   │   ├── l1_adaptive_controller.py # L1 Adaptif Bozucu Kestiricisi (DOB) ve Rüzgar Darbesi Kompanzasyonu
+│   │   ├── mission_playbook.py    # Bildirime Dayalı Görev Playbook & Fırsatçı Hedef Sıralayıcı
 │   │   └── mission_planner.py     # FSM Görev Durum Makinesi (1. & 2. Görev)
 │   ├── avionics/                  # Aviyonik, Güvenlik ve Aktüatörler
 │   │   ├── __init__.py
 │   │   ├── failsafe.py            # 120m AGL Geofence, LiPo ve Link Bekçisi
 │   │   ├── actuator.py            # Çift Yük Bırakma Güvenlikli Servo Kontrolcüsü
 │   │   ├── power_manager.py       # 4S LiPo Peukert Modeli & PNR Enerji Eşiği
-│   │   └── sensor_fusion_validator.py # Çoklu Sensör TMR Oylama, Hata Tespiti & İzolasyonu (FDIR)
+│   │   ├── sensor_fusion_validator.py # Çoklu Sensör TMR Oylama, Hata Tespiti & İzolasyonu (FDIR)
+│   │   └── terrain_following.py   # Lazer İrtifa Ölçer Yer Takibi & Yumuşak Flare İniş Kontrolcüsü
 │   ├── telemetry/                 # Haberleşme ve Veri Kaydı
 │   │   ├── __init__.py
 │   │   ├── comms.py               # MAVLink v2 Çift Yönlü Köprü (Gerçek/Mock)
 │   │   ├── sitl_server.py         # UDP Port 14550 Otonom SITL Mock Autopilot
 │   │   ├── mavlink_hil.py         # Binary MAVLink v2 HIL/SITL Protokol ve Çerçeve Motoru
+│   │   ├── debrief_engine.py      # Kara Kutu (Blackbox) Adli Bilişim & Hakem Brifing Motoru
 │   │   ├── logger.py              # CSV/JSONL Kara Kutu Telemetri Kaydedici
 │   │   ├── analytics.py           # 2026 Şartname Puanlama ve Kural Uyumluluk Motoru
 │   │   ├── geo_export.py          # GeoJSON & KML Rota ve Bırakma Dışa Aktarıcı
@@ -299,7 +303,7 @@ stateDiagram-v2
 │   └── web_gcs/                   # Web Tabanlı Yer Kontrol İstasyonu (GCS)
 │       ├── __init__.py
 │       └── server.py              # Canlı Radar, Gyro Ufuk ve REST API Sunucusu
-├── tests/                         # Otomasyonel Test Paketi (93 Test - %100 Başarı)
+├── tests/                         # Otomasyonel Test Paketi (109 Test - %100 Başarı)
 │   ├── __init__.py
 │   ├── test_actuator.py           # Çift Yük Bırakma Mekanizması Testleri
 │   ├── test_approach_manager.py   # Rüzgar Yaklaşma ve Pas Geçme Testleri
@@ -322,7 +326,11 @@ stateDiagram-v2
 │   ├── test_mavlink_hil.py        # MAVLink v2 HIL Binary Protokol Testleri
 │   ├── test_sensor_fusion_validator.py # Çoklu Sensör FDIR ve Oylama Testleri
 │   ├── test_target_classifier.py  # Hedef Sınıflandırma ve Takip Doğrulama Testleri
+│   ├── test_debrief_engine.py     # Kara Kutu Uçuş Brifingi ve Metrik Testleri
+│   ├── test_l1_adaptive_controller.py # L1 Adaptif Bozucu Kestirici Testleri
+│   ├── test_mission_playbook.py   # Görev Playbook ve Dinamik Sıralama Testleri
 │   ├── test_target_ekf.py         # EKF Hedef Yansıtma ve Yakınsama Testleri
+│   ├── test_terrain_following.py  # Lazer Yer Takibi ve Flare İniş Testleri
 │   ├── test_trajectory_optimizer.py # 3B Minimum-Jerk Yörünge ve Eğrilik Testleri
 │   ├── test_vision.py             # Altıgen/Üçgen Sınıflandırma ve Takip Testleri
 │   ├── test_web_gcs.py            # Web GCS Endpoint ve API Testleri
@@ -409,7 +417,7 @@ python scripts/mission_control.py --preflight
 python scripts/mission_control.py --sitl
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (93 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (109 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
@@ -481,14 +489,15 @@ tests/test_wind_estimator.py::test_wind_estimator_crosswind PASSED       [ 97%]
 
 tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-tests/test_dead_reckoning.py::test_dead_reckoning_gps_loss_switches_to_optical_flow PASSED [ 75%]
-tests/test_mavlink_hil.py::test_mavlink_command_long_roundtrip PASSED    [ 80%]
-tests/test_sensor_fusion_validator.py::test_validator_gps_altitude_glitch_isolation PASSED [ 85%]
-tests/test_target_classifier.py::test_tracking_temporal_confirmation PASSED [ 90%]
-tests/test_trajectory_optimizer.py::test_figure_eight_trajectory_smoothness PASSED [ 95%]
-tests/test_mission_control.py::test_mission_control_cli_fdir PASSED      [100%]
+tests/test_l1_adaptive_controller.py::test_adaptive_controller_constant_wind_gust_rejection PASSED [ 70%]
+tests/test_mission_playbook.py::test_playbook_dynamic_opportunity_replan PASSED [ 75%]
+tests/test_terrain_following.py::test_terrain_following_landing_flare_transition PASSED [ 80%]
+tests/test_debrief_engine.py::test_debrief_valid_csv_log PASSED          [ 85%]
+tests/test_mission_control.py::test_mission_control_cli_playbook PASSED  [ 90%]
+tests/test_mission_control.py::test_mission_control_cli_debrief PASSED   [ 95%]
+tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-============================= 93 passed in 7.04s ==============================
+============================ 109 passed in 10.98s =============================
 
 ```
 
