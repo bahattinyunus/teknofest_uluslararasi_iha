@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-128%2F128%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-145%2F145%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 
@@ -292,7 +292,12 @@ stateDiagram-v2
 │   │   ├── actuator.py            # Çift Yük Bırakma Güvenlikli Servo Kontrolcüsü
 │   │   ├── power_manager.py       # 4S LiPo Peukert Modeli & PNR Enerji Eşiği
 │   │   ├── sensor_fusion_validator.py # Çoklu Sensör TMR Oylama, Hata Tespiti & İzolasyonu (FDIR)
-│   │   └── terrain_following.py   # Lazer İrtifa Ölçer Yer Takibi & Yumuşak Flare İniş Kontrolcüsü
+│   │   ├── terrain_following.py   # Lazer İrtifa Ölçer Yer Takibi & Yumuşak Flare İniş Kontrolcüsü
+│   │   ├── gimbal_controller.py   # Aktif 2/3 Eksen Gimbal Ufuk Stabilizasyonu & LOS Hedef Takibi
+│   │   └── emergency_recovery.py  # Madde 7 Uyumlu Bağımsız Uçuş Kırım Önleme (FTS) & Balistik Paraşüt
+│   ├── simulation/                # Yüksek Sadakatli Fizik ve Aerodinamik Simülasyonu
+│   │   ├── __init__.py
+│   │   └── flight_dynamics.py     # 6-DOF Newton-Euler Non-Lineer Aerodinamik Uçuş Fiziği Simülatörü
 │   ├── telemetry/                 # Haberleşme ve Veri Kaydı
 │   │   ├── __init__.py
 │   │   ├── comms.py               # MAVLink v2 Çift Yönlü Köprü (Gerçek/Mock)
@@ -307,7 +312,7 @@ stateDiagram-v2
 │   └── web_gcs/                   # Web Tabanlı Yer Kontrol İstasyonu (GCS)
 │       ├── __init__.py
 │       └── server.py              # Canlı Radar, Gyro Ufuk ve REST API Sunucusu
-├── tests/                         # Otomasyonel Test Paketi (109 Test - %100 Başarı)
+├── tests/                         # Otomasyonel Test Paketi (145 Test - %100 Başarı)
 │   ├── __init__.py
 │   ├── test_actuator.py           # Çift Yük Bırakma Mekanizması Testleri
 │   ├── test_approach_manager.py   # Rüzgar Yaklaşma ve Pas Geçme Testleri

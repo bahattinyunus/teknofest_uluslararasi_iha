@@ -313,6 +313,11 @@ class WebGCSRequestHandler(BaseHTTPRequestHandler):
                     self.core_instance.actuator.release_payload_for_target("TARGET_B")
                 elif cmd == "START_MISSION_2":
                     self.core_instance.start_mission()
+                elif cmd == "DEPLOY_PARACHUTE":
+                    self.core_instance.emergency_recovery.trigger_manual_override(
+                        altitude_agl_m=self.core_instance.comms.fetch_flight_data().altitude_agl,
+                        timestamp=time.time()
+                    )
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

@@ -46,6 +46,8 @@ from src.avionics.actuator import PayloadReleaseController, PayloadStatus
 from src.avionics.power_manager import BatteryPowerManager, PowerStatus
 from src.avionics.sensor_fusion_validator import SensorFusionValidator, HealthLevel, FDIRAction, FDIRReport
 from src.avionics.terrain_following import TerrainFollowingController, TerrainState
+from src.avionics.gimbal_controller import GimbalController, GimbalAngles, GimbalMode
+from src.avionics.emergency_recovery import EmergencyRecoveryManager, EmergencyStatusReport
 from src.navigation.georeference import PinholeGeoReferencer
 from src.navigation.rolling_ballistics import RestingBallisticsOptimizer
 from src.vision.adaptive_vision import AdaptiveLightingNormalizer
@@ -116,6 +118,8 @@ class ArchitectCore:
         self.adaptive_vision = AdaptiveLightingNormalizer()
         self.rolling_ballistics = RestingBallisticsOptimizer()
         self.mission_uploader = MAVLinkMissionUploader()
+        self.gimbal_controller = GimbalController()
+        self.emergency_recovery = EmergencyRecoveryManager(uav_mass_kg=2.60)
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -150,6 +154,8 @@ class ArchitectCore:
         self.latest_georef_target: Optional[Any] = None
         self.latest_resting_prediction: Optional[Any] = None
         self.latest_lighting_metrics: Optional[Any] = None
+        self.latest_gimbal_angles: Optional[GimbalAngles] = None
+        self.latest_emergency_report: Optional[EmergencyStatusReport] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -233,6 +239,21 @@ class ArchitectCore:
             self.comms.trigger_rtl()
 
         if self.failsafe.failsafe_triggered:
+            self.comms.trigger_rtl()
+
+        # 6.05 Bağımsız Uçuş Kırım Önleme (FTS) ve Acil Paraşüt Denetimi
+        outside_dist = self.latest_geofence_status.distance_to_boundary_m if (self.latest_geofence_status and not self.latest_geofence_status.is_inside_flight_boundary) else 0.0
+        self.latest_emergency_report = self.emergency_recovery.evaluate_telemetry(
+            timestamp=telem.last_packet_time,
+            altitude_agl_m=telem.altitude_agl,
+            vz_down_mps=telem.vz,
+            roll_rate_deg_s=0.0,
+            pitch_rate_deg_s=0.0,
+            yaw_rate_deg_s=0.0,
+            accel_magnitude_g=1.0,
+            geofence_distance_outside_m=outside_dist
+        )
+        if self.latest_emergency_report.is_triggered:
             self.comms.trigger_rtl()
 
         # 6.2 L1 Adaptif Bozucu Tahmini & Rüzgar Darbesi Kompanzasyonu
@@ -354,6 +375,22 @@ class ArchitectCore:
 
             ballistics_ready = envelope.is_authorized or (prediction.is_within_tolerance or (cmd.is_centered and miss_dist < 3.5))
 
+            # 8.5 Aktif Gimbal LOS Hedef Kilidi
+            self.latest_gimbal_angles = self.gimbal_controller.update_target_tracking(
+                uav_pos_ned=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m, -telem.altitude_agl),
+                uav_attitude_rpy_deg=(telem.roll_deg, telem.pitch_deg, telem.heading_deg),
+                target_pos_ned=(t_ground_x, t_ground_y, 0.0),
+                timestamp=telem.last_packet_time
+            )
+        else:
+            # Hedef yokken ufuk stabilizasyonu (Nadir)
+            self.latest_gimbal_angles = self.gimbal_controller.update_nadir_stabilization(
+                uav_roll_deg=telem.roll_deg,
+                uav_pitch_deg=telem.pitch_deg,
+                uav_yaw_deg=telem.heading_deg,
+                timestamp=telem.last_packet_time
+            )
+
         # 9. Görev Durum Makinesini Güncelle
         prev_state = self.planner.state
         new_state = self.planner.update(
@@ -436,6 +473,9 @@ class ArchitectCore:
             "georef_target": self.latest_georef_target,
             "resting_lead_m": self.latest_resting_prediction.total_lead_distance_m if self.latest_resting_prediction else 0.0,
             "lighting_condition": self.latest_lighting_metrics.condition if self.latest_lighting_metrics else "OPTIMAL",
+            "gimbal_pitch": self.latest_gimbal_angles.pitch_deg if self.latest_gimbal_angles else -90.0,
+            "gimbal_mode": self.latest_gimbal_angles.mode.value if self.latest_gimbal_angles else "NADIR",
+            "emergency_status": self.latest_emergency_report.status.value if self.latest_emergency_report else "ARMED",
             "miss_distance": miss_dist,
             "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
         }

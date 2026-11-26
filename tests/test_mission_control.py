@@ -122,3 +122,42 @@ def test_mission_control_cli_mission_upload():
     assert res.returncode == 0
     assert "MAVLink Native Otopilot" in res.stdout
     assert "BAŞARILI" in res.stdout
+
+
+def test_mission_control_cli_gimbal():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--gimbal"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Aktif Gimbal" in res.stdout
+    assert "Hedef LOS Kilit Açıları" in res.stdout
+
+
+def test_mission_control_cli_flight_dynamics():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--flight-dynamics"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "6-DOF Aerodinamik" in res.stdout
+    assert "1 sn Sonrası Durum" in res.stdout
+
+
+def test_mission_control_cli_emergency_fts():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--emergency-fts"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Paraşüt Kurtarma Testi" in res.stdout
+    assert "Vril Tespiti" in res.stdout

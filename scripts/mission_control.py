@@ -8,6 +8,7 @@ tek bir interaktif komuta kabuğundan yönetmeyi sağlayan ana operasyonel CLI a
 
 import sys
 import os
+import math
 import argparse
 import time
 
@@ -34,6 +35,9 @@ from src.telemetry.debrief_engine import MissionDebriefEngine
 from src.navigation.georeference import PinholeGeoReferencer, CameraIntrinsics, GimbalOrientation
 from src.navigation.rolling_ballistics import RestingBallisticsOptimizer
 from src.telemetry.mission_uploader import MAVLinkMissionUploader, MissionItem
+from src.avionics.gimbal_controller import GimbalController
+from src.simulation.flight_dynamics import FlightDynamics6DOF, ControlInputs
+from src.avionics.emergency_recovery import EmergencyRecoveryManager
 import glob
 
 
@@ -56,7 +60,10 @@ MENU_BANNER = """
 [13] 🎯 Pinhole Ray Casting & WGS84 Georeferencing Doğrulaması
 [14] 🛞 Şartname 5.3 Zemin Yuvarlanma & Durma Noktası Balistik Testi
 [15] 🛰️ MAVLink Native Otopilot Görev Protokolü (Mission Upload)
-[16] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
+[16] 🎥 Aktif 2/3 Eksen Gimbal Ufuk Stabilizasyonu & LOS Hedef Takibi
+[17] ✈️ 6-DOF Aerodinamik Uçuş Dinamikleri Fiziği Simülatörü
+[18] 🪂 Bağımsız Uçuş Kırım Önleme (FTS) & Balistik Paraşüt Sistemi
+[19] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -262,6 +269,47 @@ def run_mission_upload():
     print(f"El Sıkışma Başarısı   : {'✅ BAŞARILI' if res['success'] else '❌ HATA'}")
 
 
+def run_gimbal():
+    print("\n🎥 Aktif Gimbal Ufuk Stabilizasyonu & LOS Hedef Takibi Doğrulaması...")
+    gimbal = GimbalController(max_slew_rate_deg_s=120.0)
+    # İHA dönüşte (roll = 25 deg, pitch = 5 deg)
+    stab = gimbal.update_nadir_stabilization(uav_roll_deg=25.0, uav_pitch_deg=5.0, uav_yaw_deg=40.0, timestamp=1.0)
+    print(f"Ufuk Stabilize Gimbal Komutu (Nadir): Roll={stab.roll_deg:.1f}°, Pitch={stab.pitch_deg:.1f}°")
+    # Hedefe kilitlenme: İHA (0, 0, -30), Hedef (50, 20, 0)
+    los = gimbal.update_target_tracking(
+        uav_pos_ned=(0.0, 0.0, -30.0),
+        uav_attitude_rpy_deg=(25.0, 5.0, 40.0),
+        target_pos_ned=(50.0, 20.0, 0.0),
+        timestamp=1.1
+    )
+    print(f"Hedef LOS Kilit Açıları: Pitch={los.pitch_deg:.1f}°, Yaw={los.yaw_deg:.1f}°, Mod={los.mode.value}")
+
+
+def run_6dof_sim():
+    print("\n✈️ 6-DOF Aerodinamik Uçuş Dinamikleri Simülasyonu (Newton-Euler RK4)...")
+    sim = FlightDynamics6DOF()
+    ctrl = ControlInputs(throttle=0.60, elevator_rad=-0.05, aileron_rad=0.02, rudder_rad=0.0)
+    print("Simülasyon 1.0 saniye ilerletiliyor (dt=0.02s, 50 Hz)...")
+    for _ in range(50):
+        st = sim.step(ctrl, wind_ned=(2.0, -1.0, 0.0), dt=0.02)
+    alt = -st.pos_d
+    speed = math.sqrt(st.u**2 + st.v**2 + st.w**2)
+    print(f"1 sn Sonrası Durum: Hız={speed:.2f} m/s | İrtifa={alt:.1f} m | Pitch={math.degrees(st.theta):.1f}° | Roll={math.degrees(st.phi):.1f}°")
+
+
+def run_emergency_fts():
+    print("\n🪂 Bağımsız Uçuş Kırım Önleme (FTS) & Paraşüt Kurtarma Testi...")
+    rec = EmergencyRecoveryManager(uav_mass_kg=2.60)
+    # Normal uçuş
+    r_norm = rec.evaluate_telemetry(timestamp=1.0, altitude_agl_m=35.0, vz_down_mps=0.2, roll_rate_deg_s=10.0, pitch_rate_deg_s=5.0, yaw_rate_deg_s=5.0, accel_magnitude_g=1.1)
+    print(f"Nominal Durum: {r_norm.status.value} (Tetiklendi mi: {r_norm.is_triggered})")
+    # Vril / Spin Anomali Simülasyonu: Roll rate = 220 deg/s
+    r_spin = rec.evaluate_telemetry(timestamp=1.05, altitude_agl_m=34.0, vz_down_mps=6.0, roll_rate_deg_s=220.0, pitch_rate_deg_s=15.0, yaw_rate_deg_s=10.0, accel_magnitude_g=2.5)
+    print(f"Vril Tespiti: Neden={r_spin.trigger_reason.value} | Durum={r_spin.status.value}")
+    drift_m, ttg_s, d_dir = rec.predict_touchdown_drift(current_altitude_agl_m=34.0, wind_speed_mps=4.0, wind_direction_deg=270.0)
+    print(f"Paraşüt İniş Süresi: {ttg_s:.1f}s | Rüzgar Sürüklenme Mesafesi: {drift_m:.1f}m (Yön: {d_dir:.0f}°)")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -270,7 +318,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-16]: ").strip()
+        choice = input("Seçiminiz [0-19]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -302,6 +350,12 @@ def interactive_menu():
         elif choice == "15":
             run_mission_upload()
         elif choice == "16":
+            run_gimbal()
+        elif choice == "17":
+            run_6dof_sim()
+        elif choice == "18":
+            run_emergency_fts()
+        elif choice == "19":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -328,6 +382,9 @@ def main():
     parser.add_argument("--georef", action="store_true", help="Pinhole georeferencing testini çalıştır")
     parser.add_argument("--resting-ballistics", action="store_true", help="Durma noktası ve yuvarlanma balistik testini çalıştır")
     parser.add_argument("--mission-upload", action="store_true", help="MAVLink görev yükleme el sıkışmasını test et")
+    parser.add_argument("--gimbal", action="store_true", help="Aktif gimbal hedef takibi ve stabilizasyonunu test et")
+    parser.add_argument("--flight-dynamics", action="store_true", help="6-DOF uçuş dinamikleri aerodinamik simülatörünü çalıştır")
+    parser.add_argument("--emergency-fts", action="store_true", help="Acil durum paraşüt ve kırım önleme sistemini test et")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -362,6 +419,12 @@ def main():
         run_resting_ballistics()
     elif args.mission_upload:
         run_mission_upload()
+    elif args.gimbal:
+        run_gimbal()
+    elif args.flight_dynamics:
+        run_6dof_sim()
+    elif args.emergency_fts:
+        run_emergency_fts()
     elif args.test:
         run_tests()
     else:
