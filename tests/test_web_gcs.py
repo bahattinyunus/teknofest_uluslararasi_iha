@@ -8,20 +8,22 @@ TÜBİTAK TEKNOFEST 2026 Uluslararası İHA V7 Specification Alignment:
 """
 import urllib.request
 import json
+import time
 import pytest
 from src.web_gcs.server import WebGCSServer
 
 
 @pytest.fixture(scope="module")
 def gcs_server():
-    server = WebGCSServer(host="127.0.0.1", port=8889, core_instance=None, category="rotary_wing")
+    server = WebGCSServer(host="127.0.0.1", port=8899, core_instance=None, category="rotary_wing")
     server.start_background()
+    time.sleep(0.15)
     yield server
     server.stop()
 
 
 def test_web_gcs_html_dashboard(gcs_server):
-    with urllib.request.urlopen("http://127.0.0.1:8889/") as resp:
+    with urllib.request.urlopen("http://127.0.0.1:8899/") as resp:
         assert resp.status == 200
         html = resp.read().decode("utf-8")
         assert "UAV-ARCHITECT-GLOBAL" in html
@@ -37,7 +39,7 @@ def test_web_gcs_html_dashboard(gcs_server):
 
 
 def test_web_gcs_telemetry_endpoint(gcs_server):
-    with urllib.request.urlopen("http://127.0.0.1:8889/api/telemetry") as resp:
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/telemetry") as resp:
         assert resp.status == 200
         data = json.loads(resp.read().decode("utf-8"))
         assert isinstance(data, dict)
@@ -53,7 +55,7 @@ def test_web_gcs_telemetry_endpoint(gcs_server):
 
 
 def test_web_gcs_field_config_endpoint(gcs_server):
-    with urllib.request.urlopen("http://127.0.0.1:8889/api/field_config") as resp:
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/field_config") as resp:
         assert resp.status == 200
         config = json.loads(resp.read().decode("utf-8"))
         assert config["venue_name"] == "Malatya Tulga Havalimanı (LTAO)"
@@ -72,7 +74,7 @@ def test_web_gcs_field_config_endpoint(gcs_server):
 def test_web_gcs_category_toggle(gcs_server):
     # Set to fixed wing
     req = urllib.request.Request(
-        "http://127.0.0.1:8889/api/command",
+        "http://127.0.0.1:8899/api/command",
         data=json.dumps({"command": "SET_CATEGORY", "category": "fixed_wing"}).encode("utf-8"),
         headers={"Content-Type": "application/json"}
     )
@@ -86,7 +88,7 @@ def test_web_gcs_category_toggle(gcs_server):
 
     # Reset back to rotary wing
     req = urllib.request.Request(
-        "http://127.0.0.1:8889/api/command",
+        "http://127.0.0.1:8899/api/command",
         data=json.dumps({"command": "SET_CATEGORY", "category": "rotary_wing"}).encode("utf-8"),
         headers={"Content-Type": "application/json"}
     )
@@ -110,7 +112,7 @@ def test_web_gcs_commands(gcs_server):
     ]
     for cmd in commands:
         req = urllib.request.Request(
-            "http://127.0.0.1:8889/api/command",
+            "http://127.0.0.1:8899/api/command",
             data=json.dumps({"command": cmd}).encode("utf-8"),
             headers={"Content-Type": "application/json"}
         )
@@ -124,7 +126,7 @@ def test_web_gcs_commands(gcs_server):
 def test_web_gcs_official_score_calculators(gcs_server):
     # 1. Test PG1 calculation endpoint
     pg1_req = urllib.request.Request(
-        "http://127.0.0.1:8889/api/score/pg1",
+        "http://127.0.0.1:8899/api/score/pg1",
         data=json.dumps({
             "c": 1.0,
             "vol_ratio": 1.0,
@@ -143,7 +145,7 @@ def test_web_gcs_official_score_calculators(gcs_server):
 
     # 2. Test PG2 Fixed-Wing score calculation endpoint
     pg2_f_req = urllib.request.Request(
-        "http://127.0.0.1:8889/api/score/pg2_fixed",
+        "http://127.0.0.1:8899/api/score/pg2_fixed",
         data=json.dumps({
             "c": 1.0,
             "vol_ratio": 1.0,
@@ -165,7 +167,7 @@ def test_web_gcs_official_score_calculators(gcs_server):
 
     # 3. Test PG2 Rotary-Wing score calculation endpoint
     pg2_r_req = urllib.request.Request(
-        "http://127.0.0.1:8889/api/score/pg2_rotary",
+        "http://127.0.0.1:8899/api/score/pg2_rotary",
         data=json.dumps({
             "c": 1.0,
             "vol_ratio": 1.0,
@@ -186,3 +188,27 @@ def test_web_gcs_official_score_calculators(gcs_server):
         res = json.loads(resp.read().decode("utf-8"))
         assert res["pg2_rotary_score"] == 80.0
         assert res["max_score"] == 80.0
+
+
+def test_web_gcs_export_endpoints(gcs_server):
+    # Test GeoJSON export
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/export/geojson") as resp:
+        assert resp.status == 200
+        geo = json.loads(resp.read().decode("utf-8"))
+        assert geo["type"] == "FeatureCollection"
+        assert len(geo["features"]) >= 2
+
+    # Test CSV export
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/export/csv") as resp:
+        assert resp.status == 200
+        csv_text = resp.read().decode("utf-8")
+        assert "timestamp" in csv_text
+        assert "alt_agl_m" in csv_text
+
+    # Test Referee Report export
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/export/report") as resp:
+        assert resp.status == 200
+        report = json.loads(resp.read().decode("utf-8"))
+        assert report["organization"] == "TÜBİTAK TEKNOFEST 2026"
+        assert report["rules_compliance"]["ceiling_under_120m"] is True
+        assert report["rules_compliance"]["power_cut_under_2s"] is True

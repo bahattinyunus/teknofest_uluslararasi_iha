@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-158%2F158%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-186%2F186%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Şartname Versiyonu](https://img.shields.io/badge/ŞARTNAME-2026%20V7%20(MALATYA%20TULGA)-FF5722?style=for-the-badge&logo=book&logoColor=white)](docs/2026_SPEC_REQUIREMENTS.md)
 
@@ -424,7 +424,7 @@ python scripts/mission_control.py --preflight
 python scripts/mission_control.py --sitl
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (158 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (186 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
@@ -434,7 +434,7 @@ pytest
 
 ---
 
-## 🧪 DOĞRULAMA VE TEST MATRİSİ (158 TEST - %100 BAŞARILI)
+## 🧪 DOĞRULAMA VE TEST MATRİSİ (186 TEST - %100 BAŞARILI)
 
 Projemiz, görev sahasına çıkmadan önce tüm olasılıkları test eden kapsamlı bir test paketi ile korunmaktadır:
 
@@ -502,11 +502,12 @@ tests/test_mission_control.py::test_mission_control_cli_playbook PASSED  [ 90%]
 tests/test_mission_control.py::test_mission_control_cli_debrief PASSED   [ 95%]
 tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 95%]
+tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 96%]
 tests/test_search_patterns.py::test_official_pole_eight_generation PASSED [ 97%]
+tests/test_web_gcs.py::test_web_gcs_export_endpoints PASSED              [ 98%]
 tests/test_flight_analytics.py::test_official_2026_score_calculations PASSED [100%]
 
-============================ 158 passed in 20.21s =============================
+============================ 186 passed in 19.22s =============================
 
 ```
 

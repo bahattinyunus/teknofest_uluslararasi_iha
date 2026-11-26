@@ -30,6 +30,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", help="Web sunucu adresi")
     parser.add_argument("--mode", default="simulation", choices=["simulation", "sitl", "live"])
     parser.add_argument("--task", type=int, default=2)
+    parser.add_argument("--category", choices=["rotary_wing", "fixed_wing"], default="rotary_wing", help="Yarışma kategorisi (rotary_wing / fixed_wing)")
     parser.add_argument("--no-browser", action="store_true", help="Tarayıcıyı otomatik açma")
 
     args = parser.parse_args()
@@ -43,7 +44,7 @@ def main():
     core = ArchitectCore(mode=args.mode, task=args.task)
     core.start_mission()
 
-    server = WebGCSServer(host=args.host, port=args.port, core_instance=core)
+    server = WebGCSServer(host=args.host, port=args.port, core_instance=core, category=args.category)
     server.start_background()
 
     url = f"http://{args.host}:{args.port}"
