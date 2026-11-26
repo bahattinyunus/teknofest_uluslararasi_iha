@@ -31,6 +31,9 @@ from src.navigation.trajectory_optimizer import TrajectoryOptimizer
 from src.avionics.sensor_fusion_validator import SensorFusionValidator
 from src.navigation.mission_playbook import MissionPlaybook
 from src.telemetry.debrief_engine import MissionDebriefEngine
+from src.navigation.georeference import PinholeGeoReferencer, CameraIntrinsics, GimbalOrientation
+from src.navigation.rolling_ballistics import RestingBallisticsOptimizer
+from src.telemetry.mission_uploader import MAVLinkMissionUploader, MissionItem
 import glob
 
 
@@ -50,7 +53,10 @@ MENU_BANNER = """
 [10] 🛡️ Sensör Çapraz Sağlık & FDIR Güvenlik Doğrulaması
 [11] 📜 Görev Playbook & Fırsatçı Dinamik Hedef Yeniden Planlama
 [12] 📑 Kara Kutu (Blackbox) Uçuş Brifingi & CEP İstatistik Raporu
-[13] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
+[13] 🎯 Pinhole Ray Casting & WGS84 Georeferencing Doğrulaması
+[14] 🛞 Şartname 5.3 Zemin Yuvarlanma & Durma Noktası Balistik Testi
+[15] 🛰️ MAVLink Native Otopilot Görev Protokolü (Mission Upload)
+[16] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -211,6 +217,51 @@ def run_debrief():
     print(report_md)
 
 
+def run_georef():
+    print("\n🎯 Pinhole Ray Casting & WGS84 Georeferencing Doğrulaması...")
+    geo = PinholeGeoReferencer(CameraIntrinsics(image_width=1920, image_height=1080, hfov_deg=85.0))
+    uav_lat, uav_lon, uav_alt = 40.123456, 29.654321, 30.0
+    u_px, v_px = 960.0, 540.0
+    target_gps = geo.pixel_to_gps(u_px, v_px, uav_lat, uav_lon, uav_alt, uav_pitch_deg=-5.0, uav_yaw_deg=45.0)
+    print(f"İHA Konumu  : Lat={uav_lat:.6f}, Lon={uav_lon:.6f}, İrtifa={uav_alt:.1f}m")
+    print(f"Hedef Piksel: ({u_px}, {v_px}) [Merkez Optik Eksen]")
+    if target_gps:
+        t_lat, t_lon, _ = target_gps
+        print(f"Hesaplanan Hedef GPS: Lat={t_lat:.6f}, Lon={t_lon:.6f}")
+        # Ters dönüşüm testi
+        rev = geo.gps_to_pixel(t_lat, t_lon, 0.0, uav_lat, uav_lon, uav_alt, uav_pitch_deg=-5.0, uav_yaw_deg=45.0)
+        print(f"Ters İzdüşüm (WGS84 -> Piksel) Doğrulama: {rev}")
+
+
+def run_resting_ballistics():
+    print("\n🛞 Şartname Madde 5.3 Zemin Yuvarlanma & Durma Noktası Balistik Testi...")
+    optimizer = RestingBallisticsOptimizer()
+    pred = optimizer.simulate_flight_and_roll(
+        release_altitude_agl_m=30.0,
+        uav_ground_speed_ms=18.0,
+        wind_along_track_ms=2.0
+    )
+    print(f"Bırakma İrtifası      : 30.0 m | İHA Hızı: 18.0 m/s | Rüzgar: +2.0 m/s")
+    print(f"Havadaki Uçuş Süresi  : {pred.time_of_flight_s:.2f} s")
+    print(f"İlk Vuruş Mesafesi    : {pred.impact_distance_forward_m:.2f} m (Yatay Vuruş Hızı: {pred.impact_velocity_horizontal_ms:.1f} m/s)")
+    print(f"Çim Yuvarlanma Mesafesi: {pred.roll_distance_m:.2f} m")
+    print(f"Toplam Durma Mesafesi : {pred.total_lead_distance_m:.2f} m [100 Puan Bırakma Referansı]")
+
+
+def run_mission_upload():
+    print("\n🛰️ MAVLink Native Otopilot Görev Protokolü (Mission Upload) Simülasyonu...")
+    uploader = MAVLinkMissionUploader(sys_id=255, comp_id=1, target_sys=1, target_comp=1)
+    items = [
+        MissionItem(seq=0, lat=40.231, lon=29.008, alt_m=30.0),
+        MissionItem(seq=1, lat=40.233, lon=29.010, alt_m=30.0),
+        MissionItem(seq=2, lat=40.235, lon=29.012, alt_m=25.0)
+    ]
+    res = uploader.simulate_mock_handshake(items)
+    print(f"Görev Noktası Sayısı : {res['items_uploaded']}")
+    print(f"Paket İletişim Durumu: {res['state']}")
+    print(f"El Sıkışma Başarısı   : {'✅ BAŞARILI' if res['success'] else '❌ HATA'}")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -219,7 +270,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-13]: ").strip()
+        choice = input("Seçiminiz [0-16]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -245,6 +296,12 @@ def interactive_menu():
         elif choice == "12":
             run_debrief()
         elif choice == "13":
+            run_georef()
+        elif choice == "14":
+            run_resting_ballistics()
+        elif choice == "15":
+            run_mission_upload()
+        elif choice == "16":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -268,6 +325,9 @@ def main():
     parser.add_argument("--fdir", action="store_true", help="Sensör FDIR teşhisini çalıştır")
     parser.add_argument("--playbook", action="store_true", help="Görev playbook dinamik planlamasını çalıştır")
     parser.add_argument("--debrief", action="store_true", help="Kara kutu debriefing raporu oluştur")
+    parser.add_argument("--georef", action="store_true", help="Pinhole georeferencing testini çalıştır")
+    parser.add_argument("--resting-ballistics", action="store_true", help="Durma noktası ve yuvarlanma balistik testini çalıştır")
+    parser.add_argument("--mission-upload", action="store_true", help="MAVLink görev yükleme el sıkışmasını test et")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -296,6 +356,12 @@ def main():
         run_playbook()
     elif args.debrief:
         run_debrief()
+    elif args.georef:
+        run_georef()
+    elif args.resting_ballistics:
+        run_resting_ballistics()
+    elif args.mission_upload:
+        run_mission_upload()
     elif args.test:
         run_tests()
     else:

@@ -83,3 +83,42 @@ def test_mission_control_cli_debrief():
     )
     assert res.returncode == 0
     assert "Kara Kutu" in res.stdout
+
+
+def test_mission_control_cli_georef():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--georef"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Pinhole Ray Casting" in res.stdout
+    assert "Hesaplanan Hedef GPS" in res.stdout
+
+
+def test_mission_control_cli_resting_ballistics():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--resting-ballistics"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Zemin Yuvarlanma" in res.stdout
+    assert "Toplam Durma Mesafesi" in res.stdout
+
+
+def test_mission_control_cli_mission_upload():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--mission-upload"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "MAVLink Native Otopilot" in res.stdout
+    assert "BAŞARILI" in res.stdout

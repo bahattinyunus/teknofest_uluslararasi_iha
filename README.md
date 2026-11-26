@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-109%2F109%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-128%2F128%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 
@@ -267,6 +267,7 @@ stateDiagram-v2
 │   │   ├── camera.py              # CSI/USB/RTSP ve Sentetik Kamera Sürücüsü
 │   │   ├── calibration.py         # Lens Distorsiyon Giderme ve İçsel Matris Kalibrasyonu
 │   │   ├── dataset_generator.py   # YOLO Formatlı Sentetik Veri Seti Üreteci
+│   │   ├── adaptive_vision.py     # CLAHE & Normalleştirilmiş Kromatiklik (NCC) Işık/Gölge Dayanıklı Ön İşleme
 │   │   └── target_classifier.py   # Geometrik Simetri ve Çoklu Hedef Takip / Filtreleme
 │   ├── navigation/                # Navigasyon, Güdüm ve Durum Makinesi
 │   │   ├── __init__.py
@@ -282,6 +283,8 @@ stateDiagram-v2
 │   │   ├── trajectory_optimizer.py # Quintic Spline 3B Minimum-Jerk Yörünge Optimizasyonu
 │   │   ├── l1_adaptive_controller.py # L1 Adaptif Bozucu Kestiricisi (DOB) ve Rüzgar Darbesi Kompanzasyonu
 │   │   ├── mission_playbook.py    # Bildirime Dayalı Görev Playbook & Fırsatçı Hedef Sıralayıcı
+│   │   ├── georeference.py        # Pinhole Ray Casting & 3B Gimbal/İHA Tutum Kompanzasyonlu WGS84 Jeo-Referanslama
+│   │   ├── rolling_ballistics.py  # 2026 Şartname Madde 5.3 Zemin Sürtünmeli Durma Noktası (Resting Position) Çözücüsü
 │   │   └── mission_planner.py     # FSM Görev Durum Makinesi (1. & 2. Görev)
 │   ├── avionics/                  # Aviyonik, Güvenlik ve Aktüatörler
 │   │   ├── __init__.py
@@ -295,6 +298,7 @@ stateDiagram-v2
 │   │   ├── comms.py               # MAVLink v2 Çift Yönlü Köprü (Gerçek/Mock)
 │   │   ├── sitl_server.py         # UDP Port 14550 Otonom SITL Mock Autopilot
 │   │   ├── mavlink_hil.py         # Binary MAVLink v2 HIL/SITL Protokol ve Çerçeve Motoru
+│   │   ├── mission_uploader.py    # Native MAVLink v2 Otopilot EEPROM Görev Yükleme Protokolü (MISSION_ITEM_INT)
 │   │   ├── debrief_engine.py      # Kara Kutu (Blackbox) Adli Bilişim & Hakem Brifing Motoru
 │   │   ├── logger.py              # CSV/JSONL Kara Kutu Telemetri Kaydedici
 │   │   ├── analytics.py           # 2026 Şartname Puanlama ve Kural Uyumluluk Motoru

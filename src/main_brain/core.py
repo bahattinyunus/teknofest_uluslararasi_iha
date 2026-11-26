@@ -11,6 +11,7 @@ senkronize eden ana zeka modülü.
 from typing import Dict, Any, Optional
 import os
 import sys
+import math
 import time
 import argparse
 import yaml
@@ -45,6 +46,10 @@ from src.avionics.actuator import PayloadReleaseController, PayloadStatus
 from src.avionics.power_manager import BatteryPowerManager, PowerStatus
 from src.avionics.sensor_fusion_validator import SensorFusionValidator, HealthLevel, FDIRAction, FDIRReport
 from src.avionics.terrain_following import TerrainFollowingController, TerrainState
+from src.navigation.georeference import PinholeGeoReferencer
+from src.navigation.rolling_ballistics import RestingBallisticsOptimizer
+from src.vision.adaptive_vision import AdaptiveLightingNormalizer
+from src.telemetry.mission_uploader import MAVLinkMissionUploader
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
@@ -107,6 +112,10 @@ class ArchitectCore:
         self.adaptive_controller = L1AdaptiveController()
         self.mission_playbook = MissionPlaybook()
         self.terrain_controller = TerrainFollowingController(target_cruise_agl_m=30.0)
+        self.georeferencer = PinholeGeoReferencer()
+        self.adaptive_vision = AdaptiveLightingNormalizer()
+        self.rolling_ballistics = RestingBallisticsOptimizer()
+        self.mission_uploader = MAVLinkMissionUploader()
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -138,6 +147,9 @@ class ArchitectCore:
         self.latest_disturbance: Optional[DisturbanceState] = None
         self.latest_terrain_state: Optional[TerrainState] = None
         self.latest_playbook_status: Optional[PlaybookStatus] = None
+        self.latest_georef_target: Optional[Any] = None
+        self.latest_resting_prediction: Optional[Any] = None
+        self.latest_lighting_metrics: Optional[Any] = None
 
     def _load_config(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -249,6 +261,7 @@ class ArchitectCore:
         ret, frame = self.camera.read_frame()
         detections = []
         if ret and frame is not None:
+            self.latest_lighting_metrics = self.adaptive_vision.analyze_lighting(frame)
             detections = self.detector.detect(frame)
 
         # Hangi hedefin arandığını belirle
@@ -272,6 +285,27 @@ class ArchitectCore:
         miss_dist = 999.0
 
         if self.active_locked_target is not None:
+            # 7.1 Pinhole Georeferencing ile Pikselden Gerçek Dünya WGS84 GPS Dönüşümü
+            u_px, v_px = self.active_locked_target.center_px
+            self.latest_georef_target = self.georeferencer.pixel_to_gps(
+                u=u_px,
+                v=v_px,
+                uav_lat=telem.latitude,
+                uav_lon=telem.longitude,
+                uav_alt_agl=max(2.0, telem.altitude_agl),
+                uav_roll_deg=telem.roll_deg,
+                uav_pitch_deg=telem.pitch_deg,
+                uav_yaw_deg=telem.heading_deg
+            )
+
+            # 7.2 Şartname Madde 5.3 Zemin Yuvarlanma Sürtünmeli Durma Noktası Analizi
+            eff_speed = max(telem.ground_speed, math.hypot(telem.vx, telem.vy))
+            self.latest_resting_prediction = self.rolling_ballistics.simulate_flight_and_roll(
+                release_altitude_agl_m=max(5.0, telem.altitude_agl),
+                uav_ground_speed_ms=eff_speed if eff_speed > 0.5 else 18.0,
+                wind_along_track_ms=self.latest_wind.wind_x_mps
+            )
+
             # EKF yer projeksiyonunu güncelle
             self.latest_target_state = self.target_ekf.update(
                 norm_offset_xy=self.active_locked_target.normalized_offset,
@@ -399,6 +433,9 @@ class ArchitectCore:
             "disturbance_mps2": self.latest_disturbance.gust_magnitude_mps2 if self.latest_disturbance else 0.0,
             "terrain_mode": self.latest_terrain_state.mode.value if self.latest_terrain_state else "HOLD_AGL",
             "playbook_phase": self.latest_playbook_status.current_phase.value if self.latest_playbook_status else "STANDBY",
+            "georef_target": self.latest_georef_target,
+            "resting_lead_m": self.latest_resting_prediction.total_lead_distance_m if self.latest_resting_prediction else 0.0,
+            "lighting_condition": self.latest_lighting_metrics.condition if self.latest_lighting_metrics else "OPTIMAL",
             "miss_distance": miss_dist,
             "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
         }
