@@ -1,69 +1,230 @@
 # ==============================================================================
 # TEKNOFEST 2026 ULUSLARARASI İHA GÖREV VE SİSTEM YAPILANDIRMASI
 # ==============================================================================
-# Versiyon: 2.0 (27 Şubat 2026 Şartname Revizyonu ile Uyumlu)
-# Mimari: Observer-Executor (Jetson Orin Nano + Pixhawk 6C ArduPilot)
+# Şartname: TÜBİTAK TEKNOFEST 2026 İHA Yarışmaları Şartnamesi (Sürüm: V7)
+# Konum: Malatya Tulga Havalimanı (LTAO / Tulga Kışlası)
+# Tarihler: Yarışma: 8 - 13 Eylül 2026 | Ödül Töreni: 30 Eylül – 4 Ekim 2026
+# Mimari: Observer-Executor (Jetson Orin Nano + Pixhawk 6X ArduPilot)
 # ==============================================================================
 
 competition:
   name: "TEKNOFEST 2026 Uluslararası İHA Yarışması"
-  spec_version: "V2_2026_02_27"
-  category: "rotary_wing" # rotary_wing | fixed_wing
-  max_takeoff_weight_kg: 4.0
-  max_setup_time_min: 8.0
-  max_altitude_agl_m: 120.0
-  scoring_radius_m:
-    rotary_wing: 10.0
-    fixed_wing: 20.0
+  spec_version: "V7_2026_09_06"
+  official_spec_title: "TÜBİTAK TEKNOFEST 2026 İHA Yarışmaları Şartnamesi v2"
+  category: "rotary_wing" # "rotary_wing" (Döner Kanat) | "fixed_wing" (Sabit Kanat) | "free_style" (Serbest Görev)
+  competition_dates: "8 - 13 Eylül 2026"
+  ceremony_dates: "30 Eylül – 4 Ekim 2026"
+
+  # Konum ve Tesis Bilgileri (Madde 7)
+  venue:
+    name: "Malatya Tulga Havalimanı"
+    facility: "2. Kara Havacılık Alay Komutanlığı Tulga Kışlası"
+    district: "Yeşilyurt / Malatya"
+    icao_code: "LTAO"
+    coordinates:
+      latitude: 38.34694         # 38° 20' 49" N
+      longitude: 38.24444        # 38° 14' 40" E
+      elevation_msl_m: 938.0     # Ortalama Deniz Seviyesi İrtifası (Malatya Yeşilyurt)
+    magnetic_declination_deg: 5.8 # Doğu sapma
+
+  # Şartname Boyutsal, Ağırlık ve Çevresel Kısıtları (Madde 8.1, 8.3.1, 9.3.1)
+  max_takeoff_weight_kg: 4.0      # Sabit ve Döner Kanat için yükler dahil üst sınır: 4.0 kg
+  max_altitude_agl_m: 120.0        # SHGM yasal ve şartname tavan irtifası: 120m AGL
+  min_altitude_agl_m: 0.0          # Yere temas etmemek kaydıyla alt irtifa limiti yoktur
+  max_wind_speed_kmh: 25.0         # Hakem uçuş durdurma eşik rüzgar hızı: 25 km/h (6.94 m/s)
+  flight_attempts_limit: 4         # İki görev için en fazla 4 uçuş hakkı
+  max_team_members_in_flight_area: 4 # Uçuş alanına en fazla 4 takım üyesi
+  max_team_members_in_setup: 3     # Kurulumda en fazla 3 üye (+1 YKİ operatörü)
+  shgm_registration_mandatory: true # SHGM sportif/amatör pilot ve İHA kaydı, karekod zorunlu
+  helmet_mandatory: true           # Uçuş esnasında TÜBİTAK teminli baret takılması zorunlu
+  single_camera_mandatory: true    # Yardımcı bilgisayara entegre tek bir kamera zorunlu
+
+  # Saha ve Parkur Boyutları (Madde 7, 8.3.1, Şekil 2, 3, 6, 7)
+  field:
+    flight_area_width_m: 200.0       # Uçuş alanı genişliği: 200m
+    flight_area_length_m: 300.0      # Uçuş alanı uzunluğu: 300m
+    has_buffer_zone: false           # Yarışma alanında tampon bölge YOKTUR
+    pole_distance_m: 150.0           # 1. Direk ile 2. Direk arası planlanan mesafe: 150m
+    scan_area_width_m: 30.0          # Görüntü işleme tarama alanı eni: 30m
+    scan_area_length_m: 100.0        # Görüntü işleme tarama alanı boyu: 100m
+    poles:
+      pole_1:
+        id: 1
+        x_offset_m: 75.0
+        y_offset_m: 0.0
+        description: "1 Numaralı Dönüş Direği"
+      pole_2:
+        id: 2
+        x_offset_m: -75.0
+        y_offset_m: 0.0
+        description: "2 Numaralı Dönüş Direği (Dışarıdan dönülmesi zorunlu)"
+    scan_zone:
+      x_min_m: -50.0
+      x_max_m: 50.0
+      y_min_m: -15.0
+      y_max_m: 15.0
+
+  # Zaman Eşik Değerleri ve Kısıtları (Madde 8.3.5)
+  timing:
+    setup_time_limit_min: 8.0        # Kurulum süresi üst limiti: 8 dakika (Aşılırsa uçuş hakkı yanar)
+    setup_time_limit_s: 480.0
+    flight_prep_time_limit_min: 8.0  # Uçuşa hazırlık süresi üst limiti: 8 dakika (GPS fix, arm vb.)
+    flight_prep_time_limit_s: 480.0
+    task_1_time_limit_min: 5.0       # 1. Görev azami uçuş süresi: 5 dakika
+    task_1_time_limit_s: 300.0
+    task_2_time_limit_min: 10.0      # 2. Görev azami uçuş süresi: 10 dakika
+    task_2_time_limit_s: 600.0
+    free_mission_time_limit_min: 15.0 # Serbest Görev azami süresi: 15 dakika
+    extra_intervention_penalty_s: 10.0 # Güç kesme/verme harici müdahaleler: Müdahale süresi + 10s ceza
+    emergency_power_cut_max_s: 2.0   # Acil güç kesme anahtarı: En fazla 2.0 saniyede gücü kesmeli
+    signal_loss_failsafe_delay_max_s: 5.0 # Sinyal kaybında azami fail-safe geçiş süresi: 5.0s
+
+  # Muhafaza Kutusu Kısıtları (Madde 8.3.4)
+  transport_box:
+    fixed_wing:
+      geometry: "cylindrical"         # Sabit Kanat: Silindirik kesit (daire kesit, elips KESİNLİKLE YASAK)
+      cross_section: "circular"
+      max_diameter_m: 0.35
+      max_length_m: 1.20
+      reference_volume_m3: 0.115      # V_ol_min karşılaştırması için referans hacim
+      description: "Silindirik muhafaza kutusu (Dairesel kesit)"
+    rotary_wing:
+      geometry: "rectangular_prism"  # Döner Kanat: Dikdörtgen ya da kare prizma
+      dimensions_m: [0.60, 0.60, 0.40]
+      reference_volume_m3: 0.144      # V_ol_min karşılaştırması için referans hacim
+      description: "Dikdörtgen veya kare prizma muhafaza kutusu"
+    must_be_single_person_portable: true # Bir (1) kişi tarafından taşınabilir olmalı
+    all_components_included_except_gcs_and_rc: true # Yükler dahil tüm parçalar kutuda olmalı
+    external_item_penalty_range: [0, 5] # Kutuda olmayan harici parça cezası: 0-5 puan
+    volume_calculated_from_outer_dimensions: true # Dış ölçüler esas alınır; kulp/tutma sapı hariç
+
+  # Kategori Bazlı Hedefler, Yükler ve Puanlama Kriterleri (Madde 8.3.2, 8.3.3, 10.1, 10.2, 11.1)
+  targets:
+    fixed_wing:
+      scoring_radius_m: 20.0          # Yükün son durduğu nokta merkezden azami 20m (20m dışı 0 puan)
+      target_a:
+        geometry: "square"
+        size_m: 4.0                   # 4 x 4 metre
+        color: "blue"
+        payload_color: "red"          # 4x4m mavi hedefe dışı kırmızıya boyanmış yük bırakılır
+        description: "4x4m Mavi Kare Hedef"
+      target_b:
+        geometry: "square"
+        size_m: 2.0                   # 2 x 2 metre
+        color: "red"
+        payload_color: "blue"         # 2x2m kırmızı hedefe dışı maviye boyanmış yük bırakılır
+        description: "2x2m Kırmızı Kare Hedef"
+      ignore_rotary_targets: true     # Döner kanat altıgen ve üçgen hedefleri KESİNLİKLE yok sayılmalı
+
+    rotary_wing:
+      scoring_radius_m: 10.0          # Yükün son durduğu nokta merkezden azami 10m (10m dışı 0 puan)
+      target_a:
+        geometry: "regular_hexagon"
+        side_length_m: 2.0            # Her kenarı 2 metre
+        color: "blue"
+        payload_color: "red"          # Kenarı 2m mavi altıgen hedefe dışı kırmızıya boyanmış yük bırakılır
+        description: "Kenarı 2m Düzgün Mavi Altıgen Hedef"
+      target_b:
+        geometry: "equilateral_triangle"
+        side_length_m: 1.0            # Her kenarı 1 metre
+        color: "red"
+        payload_color: "blue"         # Kenarı 1m eşkenar kırmızı üçgen hedefe dışı maviye boyanmış yük bırakılır
+        description: "Kenarı 1m Eşkenar Kırmızı Üçgen Hedef"
+      bonus_task:
+        enabled: true                 # Altıgen hedeften yük alıp üçgen hedefe taşıma bonusu
+        ay_altg_yuk_points: 10.0      # AYaltg,yük: Altıgenden yük alma (alamadı: 0, aldı: 1 -> +10 puan)
+        by_ucg_yuk_points: 10.0       # BYüçg,yük: Üçgene yük bırakma (isabetsiz: 0, isabetli: 1 -> +10 puan)
+        max_bonus_points: 20.0
+      ignore_fixed_targets: true      # Sabit kanat 4x4m ve 2x2m kare hedefleri KESİNLİKLE yok sayılmalı
+
+  # Resmi Tablo 2 & Tablo 3 Puanlama Formülleri ve Katsayıları (Madde 11.1)
+  scoring:
+    table_2_max_scores:
+      video_score: 10
+      fixed_wing:
+        task_1_max: 30
+        task_2_max: 70
+        total_max: 110
+      rotary_wing:
+        task_1_max: 30
+        task_2_max: 80
+        total_max: 120
+    penalties:
+      ceza_1_range: [0, 5]            # Centilmenlik dışı tutum ve kutu harici eklenen malzeme
+      ceza_2_range: [0, 10]           # Direği içten dönme / dıştan dönmeme cezası
+    autonomy_coefficients:
+      full_autonomous: 1.0            # Otonom kalkış, otonom uçuş, otonom iniş: c = 1.0
+      semi_autonomous: 0.7            # Manuel kalkış ve/veya manuel iniş, otonom uçuş: c = 0.7
+    formulas:
+      task_1: "c * [6*(Vol_min/Vol_tk) + 6*(t_min_haz/t_tk_haz) + 6*(W0_min/W0_tk) + 12*(t_min_ucus/t_tk_ucus)] - Ceza"
+      task_2_fixed: "c * [4*(Vol_min/Vol_tk) + 4*(t_min_haz/t_tk_haz) + 4*(W0_min/W0_tk) + 20*(W_yuk_tk/W_yuk_max) + 10*(d4x4_min/d4x4_tk) + 20*(d2x2_min/d2x2_tk) + 8*(t_min_ucus/t_tk_ucus)] - Ceza"
+      task_2_rotary: "c * [4*(Vol_min/Vol_tk) + 4*(t_min_haz/t_tk_haz) + 4*(W0_min/W0_tk) + 20*(W_yuk_tk/W_yuk_max) + 8*(daltg_min/daltg_tk) + 12*(ducg_min/ducg_tk) + 10*(AYaltg_yuk + BYucg_yuk) + 8*(t_min_ucus/t_tk_ucus)] - Ceza"
 
 flight_dynamics:
   takeoff_altitude_m: 30.0
   search_altitude_m: 35.0
   approach_altitude_m: 20.0
-  cruise_speed_mps: 8.0
-  max_ground_speed_mps: 15.0
+  cruise_speed_mps: 16.0
+  max_ground_speed_mps: 22.0
   min_ground_speed_mps: 3.0
-  climb_rate_mps: 2.5
-  descent_rate_mps: 1.5
+  climb_rate_mps: 3.5
+  descent_rate_mps: 2.0
 
 failsafe:
   max_altitude_agl_m: 120.0
   geofence_radius_m: 500.0
   battery_warning_voltage: 14.8   # 4S LiPo: 3.70V / hücre
-  battery_critical_voltage: 14.0  # 4S LiPo: 3.50V / hücre -> RTL
-  battery_emergency_voltage: 13.2 # 4S LiPo: 3.30V / hücre -> Acil İniş
+  battery_critical_voltage: 14.0  # 4S LiPo: 3.50V / hücre -> RTL / Güvenli İniş
+  battery_emergency_voltage: 13.2 # 4S LiPo: 3.30V / hücre -> Acil İniş / Paraşüt
   heartbeat_timeout_s: 3.0
-  motor_loss_action: "RTL"
-  link_loss_action: "RTL"
+  signal_loss_failsafe_delay_s: 5.0 # Sinyal kaybında en fazla 5 sn içinde failsafe (Madde 9.2)
+  power_switch_max_cutoff_s: 2.0    # 2 saniye içinde gücü kesebilen entegre anahtar (Madde 9.3.1)
+
+  # Madde 9.2 Arıza Emniyet Konfigürasyonu
+  modes:
+    fixed_wing:
+      throttle: "cut"               # Gaz kesilir
+      pitch: "full_up"              # Tam yükseliş açısı
+      rudder: "full_right"          # Tam sağ yön dümeni
+      aileron: "full_right"         # Tam sağ kanatçık
+      flaps: "full_down"            # Tam flap açılır
+    rotary_wing:
+      throttle: "half_throttle_controlled_descent" # Yarı gaz kontrollü iniş
+      rtl_allowed: false            # Döner kanatta RTL SEÇİLEMEZ, kontrollü iniş zorunlu!
+      motor_kill_on_command: true
 
 payload:
   total_payloads: 2
+  allowed_weight_trials: 2          # 2 farklı yük denemesi hakkı (örn: 800g ve 1200g)
   payload_slots:
     slot_1:
       color: "red"
-      target_type: "TARGET_A" # Mavi Altıgen / Mavi Dikdörtgen
+      target_type: "TARGET_A"       # Sabit: 4x4 Mavi Kare / Döner: 2m Mavi Altıgen
       servo_channel: 9
       open_pwm: 1900
       closed_pwm: 1100
       release_delay_s: 0.5
     slot_2:
       color: "blue"
-      target_type: "TARGET_B" # Kırmızı Üçgen / Kırmızı Kare
+      target_type: "TARGET_B"       # Sabit: 2x2 Kırmızı Kare / Döner: 1m Kırmızı Üçgen
       servo_channel: 10
       open_pwm: 1900
       closed_pwm: 1100
       release_delay_s: 0.5
 
 vision:
-  camera_source: "synthetic" # 0 (USB), "csi", "rtsp://...", "synthetic"
-  frame_width: 1280
-  frame_height: 720
+  camera_source: "synthetic"        # 0 (USB), "csi", "rtsp://...", "synthetic"
+  max_cameras_allowed: 1            # Madde 10.1.1 & 10.2.1: Kesinlikle TEK kamera izin verilir!
+  frame_width: 1920
+  frame_height: 1080
   fps: 30
   field_of_view_deg: 85.0
-  detection_backend: "geometric" # "geometric" | "yolo" | "hybrid"
+  detection_backend: "geometric"    # "geometric" | "yolo" | "hybrid"
   confidence_threshold: 0.70
+  live_gcs_proof_required: true     # Hakemlere YKİ üzerinden görüntülü tespit kanıtlama zorunluluğu
+  detect_after_pole_2_outer_turn: true # Madde 10.1.1 & 10.2.1: Tespit 2. direk dışından dönüldükten sonra başlar
   
-  # HSV Renk Uzayı Aralıkları (Ortam aydınlatmasına göre kalibre edilebilir)
+  # HSV Renk Uzayı Aralıkları
   color_ranges:
     blue:
       lower: [100, 120, 50]
@@ -77,12 +238,13 @@ vision:
 
 ballistics:
   gravity_m_s2: 9.80665
-  payload_mass_kg: 0.250
-  drag_coefficient_cd: 0.47 # Küresel / aero gövde
-  cross_sectional_area_m2: 0.00785 # 10cm çap
+  payload_mass_kg: 0.500
+  drag_coefficient_cd: 0.47
+  cross_sectional_area_m2: 0.00785
   air_density_kg_m3: 1.225
+  rolling_friction_mu: 0.35         # Çim zemin yuvarlanma sürtünmesi (Madde 8.3.3 Durma Noktası)
   integration_step_s: 0.01
-  max_drop_error_tolerance_m: 2.5
+  max_drop_error_tolerance_m: 2.0
 
 visual_servoing:
   enabled: true
@@ -96,7 +258,8 @@ visual_servoing:
   max_velocity_mps: 2.0
 
 telemetry:
-  connection_string: "udp:127.0.0.1:14550" # Serial: "/dev/ttyACM0" or "COM3"
+  connection_string: "udp:127.0.0.1:14550"
   baudrate: 115200
   heartbeat_frequency_hz: 1.0
   stream_rate_hz: 20.0
+  encryption_enabled: true          # Madde 9.3.2: Uçtan uca şifreleme zorunludur

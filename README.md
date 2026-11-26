@@ -12,7 +12,9 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-145%2F145%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-158%2F158%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+
+[![Şartname Versiyonu](https://img.shields.io/badge/ŞARTNAME-2026%20V7%20(MALATYA%20TULGA)-FF5722?style=for-the-badge&logo=book&logoColor=white)](docs/2026_SPEC_REQUIREMENTS.md)
 
 [![Python](https://img.shields.io/badge/PYTHON-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 
@@ -36,25 +38,21 @@
 
 Sistem, hava aracını yalnızca motorlardan ibaret bir drone olarak değil; gökyüzünde gerçek zamanlı görüntü işleyen, rüzgar ve sürtünme fiziğini Runge-Kutta 4 (RK4) ile milimetrik modelleyen, hedefe kilitlenen ve otonom yük bırakan **"Uçan Bir Süper Bilgisayar" (Flying Edge Supercomputer)** olarak konumlandırır.
 
-### ⚡ 2026 Görev Paneli ve Operasyonel Sınırlar (Mission Dashboard)
+### ⚡ 2026 V7 Görev Paneli ve Resmi Parametreler (Malatya Tulga Havalimanı)
 
-| Parametre | 2026 Şartname Kısıtı (V2) | Mimari Çözümümüz & Mühendislik Karşılığı |
-
+| Parametre | 2026 Resmi Şartname Kuralı (V7) | Mimari Çözümümüz & Mühendislik Karşılığı |
 | :--- | :--- | :--- |
-
-| **Hedef Tanıma** | Koordinatsız Otonom Arama | `VisionDetector`: Çift motorlu HSV renk segmentasyonu + OpenCV Geometrik Çokgen Analizi (`approxPolyDP`) + Opsiyonel YOLOv10/TensorRT. |
-
-| **Geometrik Hedefler** | Mavi Altıgen (2m) & Kırmızı Üçgen (1m) | Köşe sayısı denetimi, dairesellik oranı ($C \approx 0.907$) ve eşkenarlık analizi ile %98+ doğruluk. |
-
-| **Yük Mekanizması** | 2 Adet Renk Eşleşmeli Yük Bırakma | `PayloadReleaseController`: Hedef A (Mavi) $\rightarrow$ Kırmızı Yük, Hedef B (Kırmızı) $\rightarrow$ Mavi Yük bağımsız servo tetikleyicisi. |
-
-| **Puanlama Alanı** | Durma Konumu (Resting Pos) $\le 10\text{m}$ (Döner) / $20\text{m}$ (Sabit) | `BallisticsCalculator`: RK4 aerodinamik sürtünme ve rüzgar kompanzasyonu ile minimum saçılma. |
-
-| **İrtifa Tavanı** | **Azami 120 Metre (AGL)** | `FailsafeManager`: İrtifa 120m'ye yaklaştığında donanımsal tavan kısıtlayıcı ve anlık RTL koruması. |
-
-| **Kalkış Ağırlığı** | Azami 4.0 kg (Yükler Dahil) | Toplam sistem ağırlığı 2630g ile optimize edilmiş %35 güvenlik marjı. |
-
-| **Kurulum Süresi** | Azami 8 Dakika | Kutudan çıkar çıkmaz pre-flight check sağlayan modüler hızlı kilitli (Quick-Release) tasarım. |
+| **Yarışma Konumu** | **Malatya Tulga Havaalanı** (200m × 300m) | Malatya Tulga ($38.34694^\circ\text{ N}, 38.24444^\circ\text{ E}$) WGS84 koordinat merkezli uçuş ve geofence koridoru. |
+| **Referans Direkleri** | **150 Metre Aralık** (Direk 1 & Direk 2) | `SearchPatternGenerator`: 150m pylon mesafeli Bernoulli Lemniskatı ve dıştan dönüş rota optimizasyonu. |
+| **Tarama Alanı** | **30m × 100m** (Tampon Bölge Yok) | Kamera FOV ayak izi ile örtüşmeli sıfır kör noktalı Boustrophedon çim biçme tarama deseni. |
+| **Sabit Kanat Hedefleri** | 4×4m Mavi Kare & 2×2m Kırmızı Kare | Mavi Hedefe $\rightarrow$ Kırmızı Yük, Kırmızı Hedefe $\rightarrow$ Mavi Yük ($r \le 20\text{m}$ durma yarıçapı). |
+| **Döner Kanat Hedefleri** | 2m Mavi Düzgün Altıgen & 1m Kırmızı Üçgen | Mavi Altıgene $\rightarrow$ Kırmızı Yük, Kırmızı Üçgene $\rightarrow$ Mavi Yük ($r \le 10\text{m}$ durma yarıçapı). |
+| **Puanlama Kriteri** | **Yükün Yerde Durduğu Son Nokta (Resting Pos)** | `RollingBallisticsSolver`: Zemin sürtünmesi ($C_{rr}$), yuvarlanma mesafesi ve durma noktası hesaplayıcı. |
+| **Fail-Safe Profili** | Sabit: Gaz %0, Full Up/Right, Flap / Döner: Yarı Gaz İniş | Şartnameye tam uyumlu: Döner kanatta sinyal kaybında RTL kesinlikle devre dışı, yarı gaz dikey iniş aktif. |
+| **Acil Güç Kesme** | **$\le 2$ Saniye Kuralı** (Harici Aletsiz Anahtar) | Gövde üzerinde tek hareketle 2 saniyede gücü kesen entegre fiziksel Power On/Off anahtarı. |
+| **Kutu Geometrisi** | Sabit: **Silindirik** / Döner: **Prizma** | Sabit kanat dairesel kesit silindir kutu ($\pi r^2 h$), Döner kanat prizma ($a \cdot b \cdot c$) min hacim optimizasyonu. |
+| **İrtifa & Ağırlık** | **Azami 120m AGL** & **MTOW $\le 4.0\text{ kg}$** | 120m donanımsal tavan kısıtlayıcı; yükler dahil 2630g toplam ağırlık (%34 marj). |
+| **Süre Limitleri** | Hazırlık: $\le 8$ dk / G1: $\le 5$ dk / G2: $\le 10$ dk | Ek müdahale süresi (+10 sn) cezasını önleyen hızlı montajlı (quick-release) aviyonik mimari. |
 
 ---
 
@@ -426,19 +424,17 @@ python scripts/mission_control.py --preflight
 python scripts/mission_control.py --sitl
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (109 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (158 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
 ```bash
-
 pytest
-
 ```
 
 ---
 
-## 🧪 DOĞRULAMA VE TEST MATRİSİ (%100 BAŞARILI)
+## 🧪 DOĞRULAMA VE TEST MATRİSİ (158 TEST - %100 BAŞARILI)
 
 Projemiz, görev sahasına çıkmadan önce tüm olasılıkları test eden kapsamlı bir test paketi ile korunmaktadır:
 
@@ -506,7 +502,11 @@ tests/test_mission_control.py::test_mission_control_cli_playbook PASSED  [ 90%]
 tests/test_mission_control.py::test_mission_control_cli_debrief PASSED   [ 95%]
 tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-============================ 109 passed in 10.98s =============================
+tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 95%]
+tests/test_search_patterns.py::test_official_pole_eight_generation PASSED [ 97%]
+tests/test_flight_analytics.py::test_official_2026_score_calculations PASSED [100%]
+
+============================ 158 passed in 20.21s =============================
 
 ```
 

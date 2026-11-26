@@ -119,7 +119,7 @@ class ArchitectCore:
         self.rolling_ballistics = RestingBallisticsOptimizer()
         self.mission_uploader = MAVLinkMissionUploader()
         self.gimbal_controller = GimbalController()
-        self.emergency_recovery = EmergencyRecoveryManager(uav_mass_kg=2.60)
+        self.emergency_recovery = EmergencyRecoveryManager(uav_mass_kg=2.60, config=self.config)
 
         # Arama Waypoint rotaları
         self.figure_eight_route = self.search_generator.generate_figure_eight(scale_a_m=35.0, altitude_m=30.0)
@@ -239,7 +239,10 @@ class ArchitectCore:
             self.comms.trigger_rtl()
 
         if self.failsafe.failsafe_triggered:
-            self.comms.trigger_rtl()
+            if getattr(self.failsafe, "rtl_allowed", True):
+                self.comms.trigger_rtl()
+            else:
+                print("[MAIN CORE] DÖNER KANAT FAILSAFE: RTL yasaktır, kontrollü iniş icra ediliyor!")
 
         # 6.05 Bağımsız Uçuş Kırım Önleme (FTS) ve Acil Paraşüt Denetimi
         outside_dist = self.latest_geofence_status.distance_to_boundary_m if (self.latest_geofence_status and not self.latest_geofence_status.is_inside_flight_boundary) else 0.0
@@ -254,7 +257,10 @@ class ArchitectCore:
             geofence_distance_outside_m=outside_dist
         )
         if self.latest_emergency_report.is_triggered:
-            self.comms.trigger_rtl()
+            if getattr(self.emergency_recovery, "rtl_allowed", False):
+                self.comms.trigger_rtl()
+            else:
+                print("[MAIN CORE] ACİL DURUM: RTL engellendi, şartname uyumlu kurtarma profili devrede!")
 
         # 6.2 L1 Adaptif Bozucu Tahmini & Rüzgar Darbesi Kompanzasyonu
         self.latest_disturbance = self.adaptive_controller.update(
