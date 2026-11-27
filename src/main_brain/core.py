@@ -55,6 +55,11 @@ from src.telemetry.mission_uploader import MAVLinkMissionUploader
 from src.telemetry.comms import MavlinkBridge, DroneTelemetry
 from src.telemetry.logger import MissionLogger
 from src.telemetry.visualizer import TelemetryVisualizer
+from src.avionics.air_data_computer import AirDataComputer, AirDataState, AirspeedAlert
+from src.avionics.payload_grabber import PayloadGrabberController, GrabberState
+from src.navigation.payload_transfer_planner import PayloadTransferPlanner, TransferPhase
+from src.navigation.gust_alleviation import GustAlleviationController, ShearHazardLevel
+from src.telemetry.referee_report_generator import RefereeReportGenerator
 
 
 class ArchitectCore:
@@ -137,6 +142,15 @@ class ArchitectCore:
         # 7. Telemetri Günlük Kaydedici & Görselleştirici
         self.logger = MissionLogger()
         self.visualizer = TelemetryVisualizer()
+
+        # 8. İleri Aviyonik & Şartname Modülleri
+        self.air_data_computer = AirDataComputer()
+        self.payload_grabber = PayloadGrabberController()
+        self.payload_transfer_planner = PayloadTransferPlanner(grabber_controller=self.payload_grabber)
+        self.gust_alleviation = GustAlleviationController()
+        self.referee_report_gen = RefereeReportGenerator()
+        self.latest_adc_state: Optional[AirDataState] = None
+        self.latest_gust_output = None
 
         self.running = False
         self.status = "HAZIR"
@@ -268,6 +282,26 @@ class ArchitectCore:
             measured_vel_xyz=(telem.vx, telem.vy, 0.0),
             applied_accel_xyz=(0.0, 0.0, 0.0),
             desired_accel_xyz=(0.0, 0.0, 0.0)
+        )
+
+        # 6.25 Hava Veri Bilgisayarı (ADC) & Rüzgar Darbe Sönümleyici (GLA)
+        approx_q = 0.5 * 1.225 * (telem.ground_speed ** 2)
+        p_static_tulga = 101325.0 * math.pow(1.0 - 2.25577e-5 * (938.0 + telem.altitude_agl), 5.25588)
+        self.latest_adc_state = self.air_data_computer.compute(
+            diff_pressure_pa=approx_q,
+            static_pressure_pa=p_static_tulga,
+            oat_celsius=22.0,
+            timestamp=telem.last_packet_time
+        )
+        wind_x = getattr(self.latest_wind, "wind_x_mps", 0.0) if self.latest_wind else 0.0
+        wind_y = getattr(self.latest_wind, "wind_y_mps", 0.0) if self.latest_wind else 0.0
+        self.latest_gust_output = self.gust_alleviation.update(
+            wind_vx=wind_x,
+            wind_vy=wind_y,
+            wind_vz=0.0,
+            airspeed_mps=max(10.0, self.latest_adc_state.tas_mps),
+            in_release_run=False,
+            timestamp=telem.last_packet_time
         )
 
         # 6.3 Lazer İrtifa Takibi & Flare İniş Yönetimi
@@ -483,7 +517,14 @@ class ArchitectCore:
             "gimbal_mode": self.latest_gimbal_angles.mode.value if self.latest_gimbal_angles else "NADIR",
             "emergency_status": self.latest_emergency_report.status.value if self.latest_emergency_report else "ARMED",
             "miss_distance": miss_dist,
-            "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS"
+            "nav_source": self.latest_dr_state.navigation_source if self.latest_dr_state else "GPS",
+            "ias_mps": self.latest_adc_state.ias_mps if self.latest_adc_state else 0.0,
+            "tas_mps": self.latest_adc_state.tas_mps if self.latest_adc_state else 0.0,
+            "air_density": self.latest_adc_state.air_density_kgpm3 if self.latest_adc_state else 1.225,
+            "density_alt_m": self.latest_adc_state.density_alt_m if self.latest_adc_state else 938.0,
+            "gust_f_factor": self.latest_gust_output.f_factor if self.latest_gust_output else 0.0,
+            "gust_hazard": self.latest_gust_output.hazard_level.value if self.latest_gust_output else "NOMINAL",
+            "grabber_state": self.payload_grabber.state.value
         }
 
     def start_mission(self):

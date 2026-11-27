@@ -15,6 +15,7 @@ from src.telemetry.mavlink_hil import (
     HILMetrics
 )
 from src.telemetry.debrief_engine import MissionDebriefEngine, DebriefMetrics
+from src.telemetry.referee_report_generator import RefereeReportGenerator, RefereeAuditVerification
 
 __all__ = [
     "MavlinkBridge",
@@ -32,5 +33,7 @@ __all__ = [
     "MAVCmd",
     "HILMetrics",
     "MissionDebriefEngine",
-    "DebriefMetrics"
+    "DebriefMetrics",
+    "RefereeReportGenerator",
+    "RefereeAuditVerification"
 ]

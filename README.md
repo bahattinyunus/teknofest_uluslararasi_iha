@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-186%2F186%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-209%2F209%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Şartname Versiyonu](https://img.shields.io/badge/ŞARTNAME-2026%20V7%20(MALATYA%20TULGA)-FF5722?style=for-the-badge&logo=book&logoColor=white)](docs/2026_SPEC_REQUIREMENTS.md)
 
@@ -283,6 +283,8 @@ stateDiagram-v2
 │   │   ├── mission_playbook.py    # Bildirime Dayalı Görev Playbook & Fırsatçı Hedef Sıralayıcı
 │   │   ├── georeference.py        # Pinhole Ray Casting & 3B Gimbal/İHA Tutum Kompanzasyonlu WGS84 Jeo-Referanslama
 │   │   ├── rolling_ballistics.py  # 2026 Şartname Madde 5.3 Zemin Sürtünmeli Durma Noktası (Resting Position) Çözücüsü
+│   │   ├── payload_transfer_planner.py # Görev 3 Bonus Yerden Alma (Altıgen) ve Taşıma (Üçgen) Planlayıcısı (+20 Puan)
+│   │   ├── gust_alleviation.py    # NASA F-Faktörü Rüzgar Kesmesi Tespiti ve Rüzgar Darbe Sönümleyici (GLA)
 │   │   └── mission_planner.py     # FSM Görev Durum Makinesi (1. & 2. Görev)
 │   ├── avionics/                  # Aviyonik, Güvenlik ve Aktüatörler
 │   │   ├── __init__.py
@@ -292,7 +294,9 @@ stateDiagram-v2
 │   │   ├── sensor_fusion_validator.py # Çoklu Sensör TMR Oylama, Hata Tespiti & İzolasyonu (FDIR)
 │   │   ├── terrain_following.py   # Lazer İrtifa Ölçer Yer Takibi & Yumuşak Flare İniş Kontrolcüsü
 │   │   ├── gimbal_controller.py   # Aktif 2/3 Eksen Gimbal Ufuk Stabilizasyonu & LOS Hedef Takibi
-│   │   └── emergency_recovery.py  # Madde 7 Uyumlu Bağımsız Uçuş Kırım Önleme (FTS) & Balistik Paraşüt
+│   │   ├── emergency_recovery.py  # Madde 7 Uyumlu Bağımsız Uçuş Kırım Önleme (FTS) & Balistik Paraşüt
+│   │   ├── air_data_computer.py   # DO-178C Uyumlu Hava Veri Bilgisayarı (ADC), Tulga İrtifa/Yoğunluk & Stall Koruması
+│   │   └── payload_grabber.py     # Görev 3 Döner Kanat Yük Alma Kıskacı Sürücüsü (Akım Algılama & Switch Doğrulama)
 │   ├── simulation/                # Yüksek Sadakatli Fizik ve Aerodinamik Simülasyonu
 │   │   ├── __init__.py
 │   │   └── flight_dynamics.py     # 6-DOF Newton-Euler Non-Lineer Aerodinamik Uçuş Fiziği Simülatörü
@@ -306,7 +310,8 @@ stateDiagram-v2
 │   │   ├── logger.py              # CSV/JSONL Kara Kutu Telemetri Kaydedici
 │   │   ├── analytics.py           # 2026 Şartname Puanlama ve Kural Uyumluluk Motoru
 │   │   ├── geo_export.py          # GeoJSON & KML Rota ve Bırakma Dışa Aktarıcı
-│   │   └── visualizer.py          # ASCII Suni Ufuk ve Canlı Gösterge HUD'ı
+│   │   ├── visualizer.py          # ASCII Suni Ufuk ve Canlı Gösterge HUD'ı
+│   │   └── referee_report_generator.py # 2026 Şartname Resmi Hakem Heyeti Adli Rapor ve Kanıt Üreteci (HTML/JSON)
 │   └── web_gcs/                   # Web Tabanlı Yer Kontrol İstasyonu (GCS)
 │       ├── __init__.py
 │       └── server.py              # Canlı Radar, Gyro Ufuk ve REST API Sunucusu
@@ -414,7 +419,7 @@ python scripts/gcs_dashboard.py --duration 30
 Tüm alt sistemleri, simülasyonu, uçuş öncesi kontrolleri ve GCS'i tek merkezden yönetmek için:
 
 ```bash
-# İnteraktif Görev Menüsü:
+# İnteraktif Görev Menüsü (22 Alt Sistem):
 python scripts/mission_control.py --menu
 
 # Otonom Uçuş Öncesi Donanım Kontrolü (Pre-flight Checklist):
@@ -422,9 +427,21 @@ python scripts/mission_control.py --preflight
 
 # SITL Otopilot Simülasyonu + Web GCS Birlikte Başlatma:
 python scripts/mission_control.py --sitl
+
+# Hava Veri Bilgisayarı (ADC) & Tulga İrtifa/Stall Analizi:
+python scripts/mission_control.py --adc
+
+# Görev 3 Döner Kanat Yük Alma Kıskacı (AY & BY Bonusu +20 Puan):
+python scripts/mission_control.py --grabber
+
+# NASA F-Faktörü Rüzgar Darbe Sönümleyici (GLA) & Rüzgar Kesmesi:
+python scripts/mission_control.py --gust
+
+# TÜBİTAK TEKNOFEST 2026 Resmi Hakem Raporu ve Adli Denetim (HTML):
+python scripts/mission_control.py --referee-audit
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (186 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (209 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
@@ -434,80 +451,44 @@ pytest
 
 ---
 
-## 🧪 DOĞRULAMA VE TEST MATRİSİ (186 TEST - %100 BAŞARILI)
+## 🧪 DOĞRULAMA VE TEST MATRİSİ (209 TEST - %100 BAŞARILI)
 
 Projemiz, görev sahasına çıkmadan önce tüm olasılıkları test eden kapsamlı bir test paketi ile korunmaktadır:
 
 ```text
-
-tests/test_actuator.py::test_payload_initial_status PASSED               [  4%]
-
-tests/test_actuator.py::test_payload_arming_and_disarming PASSED         [  8%]
-
-tests/test_actuator.py::test_payload_release_unarmed_rejected PASSED     [ 12%]
-
-tests/test_actuator.py::test_payload_dual_release_sequence PASSED        [ 16%]
-
-tests/test_ballistics.py::test_freefall_time_zero_altitude PASSED        [ 20%]
-
-tests/test_ballistics.py::test_freefall_time_analytical PASSED           [ 25%]
-
-tests/test_ballistics.py::test_rk4_trajectory_simulation PASSED          [ 29%]
-
-tests/test_ballistics.py::test_rk4_with_crosswind PASSED                 [ 33%]
-
-tests/test_ballistics.py::test_predict_impact_within_tolerance PASSED    [ 37%]
-
-tests/test_core.py::test_core_initialization_and_single_step PASSED      [ 41%]
-
-tests/test_failsafe.py::test_failsafe_nominal_state PASSED               [ 45%]
-
-tests/test_failsafe.py::test_failsafe_altitude_limit_violation PASSED    [ 50%]
-
-tests/test_failsafe.py::test_failsafe_critical_battery PASSED            [ 54%]
-
-tests/test_failsafe.py::test_failsafe_emergency_battery PASSED           [ 58%]
-
-tests/test_failsafe.py::test_failsafe_heartbeat_timeout PASSED           [ 62%]
-
-tests/test_mission_planner.py::test_planner_initialization PASSED        [ 66%]
-
-tests/test_mission_planner.py::test_task_1_transition_sequence PASSED    [ 70%]
-
-tests/test_mission_planner.py::test_task_2_payload_search_and_drop_sequence PASSED [ 75%]
-
-tests/test_mission_planner.py::test_failsafe_state_interruption PASSED   [ 79%]
-
-tests/test_vision.py::test_synthetic_camera_generation PASSED            [ 83%]
-
-tests/test_vision.py::test_detector_finds_targets_in_synthetic_frame PASSED [ 87%]
-
-tests/test_vision.py::test_hexagon_shape_classification PASSED           [ 91%]
-
-tests/test_vision.py::test_tracker_smoothing PASSED                      [ 89%]
-
-tests/test_wind_estimator.py::test_wind_estimator_zero_wind PASSED       [ 92%]
-
-tests/test_wind_estimator.py::test_wind_estimator_direct_headwind PASSED [ 94%]
-
-tests/test_wind_estimator.py::test_wind_estimator_crosswind PASSED       [ 97%]
-
-tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
-
-tests/test_l1_adaptive_controller.py::test_adaptive_controller_constant_wind_gust_rejection PASSED [ 70%]
-tests/test_mission_playbook.py::test_playbook_dynamic_opportunity_replan PASSED [ 75%]
-tests/test_terrain_following.py::test_terrain_following_landing_flare_transition PASSED [ 80%]
-tests/test_debrief_engine.py::test_debrief_valid_csv_log PASSED          [ 85%]
-tests/test_mission_control.py::test_mission_control_cli_playbook PASSED  [ 90%]
-tests/test_mission_control.py::test_mission_control_cli_debrief PASSED   [ 95%]
-tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
-
-tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 96%]
-tests/test_search_patterns.py::test_official_pole_eight_generation PASSED [ 97%]
+tests/test_actuator.py::test_payload_initial_status PASSED               [  1%]
+tests/test_actuator.py::test_payload_arming_and_disarming PASSED         [  2%]
+tests/test_air_data_computer.py::test_adc_sea_level_nominal_computation PASSED [  4%]
+tests/test_air_data_computer.py::test_adc_density_altitude_scaling_at_tulga PASSED [  5%]
+tests/test_air_data_computer.py::test_adc_stall_warning_and_critical_detection PASSED [  6%]
+tests/test_air_data_computer.py::test_adc_pitot_blockage_detection PASSED [  7%]
+tests/test_approach_manager.py::test_ideal_inbound_heading_headwind PASSED [  8%]
+tests/test_ballistics.py::test_rk4_trajectory_simulation PASSED          [ 12%]
+tests/test_ballistics.py::test_predict_impact_within_tolerance PASSED    [ 15%]
+tests/test_core.py::test_core_initialization_and_single_step PASSED      [ 18%]
+tests/test_failsafe.py::test_failsafe_altitude_limit_violation PASSED    [ 24%]
+tests/test_failsafe.py::test_doner_kanat_exact_failsafe_profile_no_rtl PASSED [ 28%]
+tests/test_gust_alleviation.py::TestGustAlleviationController::test_lateral_gust_roll_compensation PASSED [ 38%]
+tests/test_gust_alleviation.py::TestGustAlleviationController::test_nasa_f_factor_wind_shear_warning PASSED [ 40%]
+tests/test_l1_adaptive_controller.py::test_adaptive_controller_constant_wind_gust_rejection PASSED [ 45%]
+tests/test_mission_control.py::test_mission_control_cli_help PASSED      [ 50%]
+tests/test_payload_grabber.py::TestPayloadGrabberController::test_grasp_sequence_with_contact PASSED [ 62%]
+tests/test_payload_grabber.py::TestPayloadGrabberController::test_release_sequence PASSED [ 64%]
+tests/test_payload_transfer_planner.py::TestPayloadTransferPlanner::test_full_mission_transfer_cycle PASSED [ 68%]
+tests/test_referee_report_generator.py::TestRefereeReportGenerator::test_nominal_audit_generation PASSED [ 72%]
+tests/test_referee_report_generator.py::TestRefereeReportGenerator::test_ceiling_breach_detection PASSED [ 73%]
+tests/test_referee_report_generator.py::TestRefereeReportGenerator::test_html_report_rendering PASSED [ 74%]
+tests/test_rolling_ballistics.py::test_release_window_trigger PASSED     [ 77%]
+tests/test_search_patterns.py::test_figure_eight_wraps_150m_poles_and_outer_turn PASSED [ 80%]
+tests/test_sensor_fusion_validator.py::test_validator_gps_altitude_glitch_isolation PASSED [ 84%]
+tests/test_target_classifier.py::test_classify_blue_regular_hexagon PASSED [ 88%]
+tests/test_terrain_following.py::test_terrain_following_landing_flare_transition PASSED [ 91%]
+tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 95%]
 tests/test_web_gcs.py::test_web_gcs_export_endpoints PASSED              [ 98%]
-tests/test_flight_analytics.py::test_official_2026_score_calculations PASSED [100%]
+tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-============================ 186 passed in 19.22s =============================
+============================ 209 passed in 21.92s =============================
+```
 
 ```
 

@@ -29,6 +29,16 @@ from src.avionics.terrain_following import (
     AltitudeMode,
     TerrainState
 )
+from src.avionics.air_data_computer import (
+    AirDataComputer,
+    AirDataState,
+    AirspeedAlert
+)
+from src.avionics.payload_grabber import (
+    PayloadGrabberController,
+    GrabberState,
+    GrabberTelemetry
+)
 
 __all__ = [
     "FailsafeManager",
@@ -55,5 +65,11 @@ __all__ = [
     "FDIRReport",
     "TerrainFollowingController",
     "AltitudeMode",
-    "TerrainState"
+    "TerrainState",
+    "AirDataComputer",
+    "AirDataState",
+    "AirspeedAlert",
+    "PayloadGrabberController",
+    "GrabberState",
+    "GrabberTelemetry"
 ]

@@ -38,6 +38,11 @@ from src.telemetry.mission_uploader import MAVLinkMissionUploader, MissionItem
 from src.avionics.gimbal_controller import GimbalController
 from src.simulation.flight_dynamics import FlightDynamics6DOF, ControlInputs
 from src.avionics.emergency_recovery import EmergencyRecoveryManager
+from src.avionics.air_data_computer import AirDataComputer
+from src.avionics.payload_grabber import PayloadGrabberController
+from src.navigation.payload_transfer_planner import PayloadTransferPlanner
+from src.navigation.gust_alleviation import GustAlleviationController
+from src.telemetry.referee_report_generator import RefereeReportGenerator
 import glob
 
 
@@ -63,7 +68,11 @@ MENU_BANNER = """
 [16] 🎥 Aktif 2/3 Eksen Gimbal Ufuk Stabilizasyonu & LOS Hedef Takibi
 [17] ✈️ 6-DOF Aerodinamik Uçuş Dinamikleri Fiziği Simülatörü
 [18] 🪂 Bağımsız Uçuş Kırım Önleme (FTS) & Balistik Paraşüt Sistemi
-[19] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
+[19] 🌬️ Hava Veri Bilgisayarı (ADC) & Perdövites (Stall) Koruması
+[20] 🦾 Döner Kanat Görev 3 Bonus Yük Alma (Grabber) & Transfer
+[21] 🌪️ NASA F-Faktörü Rüzgar Kesmesi (Wind Shear) & Darbe Sönümleyici
+[22] 📑 TÜBİTAK TEKNOFEST 2026 Resmi Hakem Denetim Raporu
+[23] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -310,6 +319,80 @@ def run_emergency_fts():
     print(f"Paraşüt İniş Süresi: {ttg_s:.1f}s | Rüzgar Sürüklenme Mesafesi: {drift_m:.1f}m (Yön: {d_dir:.0f}°)")
 
 
+def run_adc():
+    print("\n🌬️ Hava Veri Bilgisayarı (ADC) & Perdövites Koruması Test Ediliyor...")
+    adc = AirDataComputer(v_stall_mps=9.5, v_ne_mps=30.0)
+    # Test 1: Normal Seyrüsefer Uçuşu (Malatya Tulga 938m MSL)
+    p_static = 90500.0  # Pa
+    dp_cruise = 0.5 * 1.15 * (14.0 ** 2)  # ~112.7 Pa
+    st = adc.compute(diff_pressure_pa=dp_cruise, static_pressure_pa=p_static, oat_celsius=24.0, timestamp=1.0)
+    print(f"[*] Seyrüsefer: IAS={st.ias_mps} m/s | TAS={st.tas_mps} m/s ({st.tas_kmh} km/h) | Yoğunluk İrtifası={st.density_alt_m}m | Alarm={st.alert.value}")
+
+    # Test 2: Düşük Hız ve Perdövites Uyarısı (IAS < 9.5 m/s)
+    dp_low = 0.5 * 1.15 * (8.5 ** 2)
+    st_stall = adc.compute(diff_pressure_pa=dp_low, static_pressure_pa=p_static, oat_celsius=24.0, timestamp=2.0)
+    rec_pitch, rec_throt = adc.get_stall_recovery_action(current_pitch_deg=6.0)
+    print(f"[*] Perdövites Durumu: IAS={st_stall.ias_mps} m/s | Alarm={st_stall.alert.value} | İyileştirme: Pitch={rec_pitch}° | Gaz=%{rec_throt*100:.0f}")
+
+
+def run_payload_grabber():
+    print("\n🦾 Döner Kanat Görev 3 Bonus Yük Alma (Grabber) & Transfer Simülasyonu...")
+    grabber = PayloadGrabberController()
+    planner = PayloadTransferPlanner(target_a_xy=(-20.0, 45.0), target_b_xy=(25.0, 45.0), grabber_controller=grabber)
+    planner.start_transfer_mission()
+    print(f"[*] Görev 3 Başlatıldı -> Faz: {planner.phase.value}")
+
+    # Hedef A'ya yaklaşma ve alçalma
+    s1 = planner.update(uav_xy=(-20.0, 45.0), uav_alt_m=0.35, contact_switch=True, motor_current_ma=920.0, timestamp=1.0)
+    s2 = planner.update(uav_xy=(-20.0, 45.0), uav_alt_m=0.35, contact_switch=True, motor_current_ma=920.0, timestamp=2.5)
+    print(f"[*] Hedef A Alçalış & Kavrama: Faz={s2.phase.value} | AY Bonusu={s2.ay_bonus_awarded} (+10 Puan) | Toplam Bonus={s2.total_bonus_points} Puan")
+
+    # Hedef B'ye transit ve bırakma
+    s3 = planner.update(uav_xy=(25.0, 45.0), uav_alt_m=1.20, contact_switch=False, timestamp=5.0)
+    s4 = planner.update(uav_xy=(25.0, 45.0), uav_alt_m=1.20, contact_switch=False, timestamp=6.0)
+    print(f"[*] Hedef B Bırakma: Faz={s4.phase.value} | BY Bonusu={s4.by_bonus_awarded} (+10 Puan) | Toplam Bonus={s4.total_bonus_points} / 20 Puan")
+
+
+def run_gust_alleviation():
+    print("\n🌪️ NASA F-Faktörü Rüzgar Kesmesi (Wind Shear) & Darbe Sönümleyici Test Ediliyor...")
+    gla = GustAlleviationController(f_factor_threshold=0.13, wind_speed_limit_mps=6.94)
+    # T=0 İlk Başlangıç
+    gla.update(wind_vx=3.0, wind_vy=1.0, wind_vz=0.0, airspeed_mps=14.0, timestamp=0.0)
+    # T=0.1 Ani Rüzgar Darbesi ve Çöküş (Microburst)
+    res = gla.update(wind_vx=7.5, wind_vy=-4.0, wind_vz=-1.8, airspeed_mps=14.0, in_release_run=True, timestamp=0.1)
+    print(f"[*] Rüzgar Kesmesi: F-Faktörü={res.f_factor} | Tehlike Seviyesi={res.hazard_level.value}")
+    print(f"[*] Düzeltme Komutları: Roll Düzeltmesi={res.delta_roll_cmd}° | Pitch Düzeltmesi={res.delta_pitch_cmd}° | Gaz Artışı=+%{res.delta_throttle*100:.1f}")
+    print(f"[*] Pas Geçme Tavsiyesi: {res.go_around_recommended}")
+
+
+def run_referee_audit():
+    print("\n📑 TÜBİTAK TEKNOFEST 2026 Resmi Hakem Denetim ve Telemetri Raporu Üretiliyor...")
+    gen = RefereeReportGenerator(team_name="UAV-ARCHITECT-GLOBAL")
+    mock_telemetry = [
+        {"timestamp": 0.0, "alt_agl_m": 0.0, "ground_speed_mps": 0.0, "wind_speed_mps": 2.5, "pos_x": 0.0, "pos_y": 0.0},
+        {"timestamp": 60.0, "alt_agl_m": 35.0, "ground_speed_mps": 14.5, "wind_speed_mps": 4.2, "pos_x": -75.0, "pos_y": 0.0},
+        {"timestamp": 120.0, "alt_agl_m": 34.0, "ground_speed_mps": 15.0, "wind_speed_mps": 3.8, "pos_x": 75.0, "pos_y": 0.0},
+        {"timestamp": 180.0, "alt_agl_m": 22.0, "ground_speed_mps": 10.0, "wind_speed_mps": 3.0, "pos_x": 0.0, "pos_y": 45.0}
+    ]
+    audit = gen.generate_audit(
+        category="rotary_wing",
+        task_number=2,
+        c_autonomy=1.0,
+        flight_telemetry_points=mock_telemetry,
+        setup_duration_s=210.0,
+        extra_interventions=0,
+        target_a_miss_m=0.45,
+        target_b_miss_m=0.80,
+        ay_bonus=True,
+        by_bonus=True
+    )
+    print(f"[*] Hakem Brifingi: Takım={audit.team_name} | Konum={audit.venue}")
+    print(f"[*] Tavan İhlali: {audit.ceiling_breached} (Max İrtifa: {audit.max_altitude_agl_m}m / 120m AGL)")
+    print(f"[*] Saha Güvenliği: Geofence İhlali={audit.geofence_breached} | 2. Direk Dış Dönüşü={audit.pole_2_outer_turn_valid}")
+    print(f"[*] Tablo 3 Görev 2 Puanı: {audit.calculated_score} / {audit.max_possible_score} (c={audit.c_autonomy})")
+    print(f"[*] Telemetri SHA-256 İmzası: {audit.telemetry_hash}")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -318,7 +401,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-19]: ").strip()
+        choice = input("Seçiminiz [0-23]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -356,6 +439,14 @@ def interactive_menu():
         elif choice == "18":
             run_emergency_fts()
         elif choice == "19":
+            run_adc()
+        elif choice == "20":
+            run_payload_grabber()
+        elif choice == "21":
+            run_gust_alleviation()
+        elif choice == "22":
+            run_referee_audit()
+        elif choice == "23":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -385,6 +476,10 @@ def main():
     parser.add_argument("--gimbal", action="store_true", help="Aktif gimbal hedef takibi ve stabilizasyonunu test et")
     parser.add_argument("--flight-dynamics", action="store_true", help="6-DOF uçuş dinamikleri aerodinamik simülatörünü çalıştır")
     parser.add_argument("--emergency-fts", action="store_true", help="Acil durum paraşüt ve kırım önleme sistemini test et")
+    parser.add_argument("--adc", action="store_true", help="Hava veri bilgisayarı (ADC) ve stall testini çalıştır")
+    parser.add_argument("--grabber", action="store_true", help="Döner kanat yük alma (grabber) ve transfer simülasyonunu çalıştır")
+    parser.add_argument("--gust", action="store_true", help="Rüzgar darbe ve kesme sönümleyicisini test et")
+    parser.add_argument("--referee-audit", action="store_true", help="Resmi hakem heyeti uçuş denetim raporu üret")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -425,6 +520,14 @@ def main():
         run_6dof_sim()
     elif args.emergency_fts:
         run_emergency_fts()
+    elif args.adc:
+        run_adc()
+    elif args.grabber:
+        run_payload_grabber()
+    elif args.gust:
+        run_gust_alleviation()
+    elif args.referee_audit:
+        run_referee_audit()
     elif args.test:
         run_tests()
     else:

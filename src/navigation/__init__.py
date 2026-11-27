@@ -19,6 +19,16 @@ from src.navigation.mission_playbook import (
     PlaybookWaypoint,
     PlaybookStatus
 )
+from src.navigation.payload_transfer_planner import (
+    PayloadTransferPlanner,
+    TransferPhase,
+    TransferStatus
+)
+from src.navigation.gust_alleviation import (
+    GustAlleviationController,
+    GustCompensationOutput,
+    ShearHazardLevel
+)
 
 __all__ = [
     "BallisticsCalculator",
@@ -50,5 +60,11 @@ __all__ = [
     "MissionPlaybook",
     "PlaybookPhase",
     "PlaybookWaypoint",
-    "PlaybookStatus"
+    "PlaybookStatus",
+    "PayloadTransferPlanner",
+    "TransferPhase",
+    "TransferStatus",
+    "GustAlleviationController",
+    "GustCompensationOutput",
+    "ShearHazardLevel"
 ]
