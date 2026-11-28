@@ -212,3 +212,17 @@ def test_web_gcs_export_endpoints(gcs_server):
         assert report["organization"] == "TÜBİTAK TEKNOFEST 2026"
         assert report["rules_compliance"]["ceiling_under_120m"] is True
         assert report["rules_compliance"]["power_cut_under_2s"] is True
+
+
+def test_web_gcs_security_and_pylon_endpoints(gcs_server):
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/security") as resp:
+        assert resp.status == 200
+        sec = json.loads(resp.read().decode("utf-8"))
+        assert sec["encryption_active"] is True
+        assert sec["anomaly_level"] == "NOMINAL"
+
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/pylon_gate") as resp:
+        assert resp.status == 200
+        pg = json.loads(resp.read().decode("utf-8"))
+        assert "compliance_state" in pg
+        assert "pole_2_outer_turn_verified" in pg

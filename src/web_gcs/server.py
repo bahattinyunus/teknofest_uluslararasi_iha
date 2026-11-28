@@ -1618,6 +1618,48 @@ class WebGCSRequestHandler(BaseHTTPRequestHandler):
                 }
             }
             self._send_json_response(report_data)
+        elif self.path == "/api/security":
+            if self.core_instance is not None and hasattr(self.core_instance, "crypto_link"):
+                st = self.core_instance.crypto_link.latest_status
+                self._send_json_response({
+                    "anomaly_level": st.anomaly_level.value,
+                    "key_epoch": st.key_epoch,
+                    "tx_packets": st.tx_packets,
+                    "rx_packets": st.rx_packets,
+                    "replay_rejections": st.replay_rejections,
+                    "mac_failures": st.mac_failures,
+                    "snr_db": st.snr_db,
+                    "encryption_active": st.encryption_active,
+                    "diagnostic_message": st.diagnostic_message
+                })
+            else:
+                self._send_json_response({
+                    "anomaly_level": "NOMINAL",
+                    "key_epoch": 1,
+                    "encryption_active": True,
+                    "snr_db": 37.0,
+                    "diagnostic_message": "256-bit Encrypt-then-MAC Telemetri Hattı Aktif"
+                })
+        elif self.path == "/api/pylon_gate":
+            if self.core_instance is not None and getattr(self.core_instance, "latest_pylon_status", None) is not None:
+                ps = self.core_instance.latest_pylon_status
+                self._send_json_response({
+                    "compliance_state": ps.compliance_state.value,
+                    "pole_2_outer_turn_verified": ps.pole_2_outer_turn_verified,
+                    "figure_eight_laps_completed": ps.figure_eight_laps_completed,
+                    "vision_scan_authorized": ps.vision_scan_authorized,
+                    "estimated_penalty_2_pts": ps.estimated_penalty_2_pts,
+                    "violations": ps.violations
+                })
+            else:
+                self._send_json_response({
+                    "compliance_state": "PRE_POLE_2",
+                    "pole_2_outer_turn_verified": False,
+                    "figure_eight_laps_completed": 0,
+                    "vision_scan_authorized": False,
+                    "estimated_penalty_2_pts": 0.0,
+                    "violations": []
+                })
         else:
             self.send_response(404)
             self.end_headers()

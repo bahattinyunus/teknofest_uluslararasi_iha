@@ -16,6 +16,11 @@ from src.vision.camera import CameraInterface
 from src.vision.dataset_generator import SyntheticDatasetGenerator
 from src.vision.calibration import CameraCalibrator
 from src.vision.target_classifier import TargetClassifier, TrackedTarget
+from src.vision.multi_target_fusion import (
+    MultiTargetFusionTracker,
+    FusedTargetTrack,
+    TrackStatus
+)
 
 __all__ = [
     "VisionDetector",
@@ -31,5 +36,8 @@ __all__ = [
     "SyntheticDatasetGenerator",
     "CameraCalibrator",
     "TargetClassifier",
-    "TrackedTarget"
+    "TrackedTarget",
+    "MultiTargetFusionTracker",
+    "FusedTargetTrack",
+    "TrackStatus"
 ]
