@@ -39,6 +39,16 @@ from src.avionics.payload_grabber import (
     GrabberState,
     GrabberTelemetry
 )
+from src.avionics.storage_box_optimizer import (
+    StorageBoxOptimizer,
+    BoxGeometry,
+    StorageBoxSpec,
+    BoxValidationResult,
+    CompetitionTeamProfile,
+    CompetitorBenchmark,
+    PayloadTrialRecommendation,
+    ScoreOptimizationResult
+)
 
 __all__ = [
     "FailsafeManager",
@@ -71,5 +81,13 @@ __all__ = [
     "AirspeedAlert",
     "PayloadGrabberController",
     "GrabberState",
-    "GrabberTelemetry"
+    "GrabberTelemetry",
+    "StorageBoxOptimizer",
+    "BoxGeometry",
+    "StorageBoxSpec",
+    "BoxValidationResult",
+    "CompetitionTeamProfile",
+    "CompetitorBenchmark",
+    "PayloadTrialRecommendation",
+    "ScoreOptimizationResult"
 ]

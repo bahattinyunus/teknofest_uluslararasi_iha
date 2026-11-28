@@ -20,6 +20,9 @@ def test_core_initialization_and_single_step():
     assert "altitude_agl" in step_info
     assert "payloads_remaining" in step_info
     assert step_info["payloads_remaining"] == 2
+    assert step_info["link_security"] == "SECURE"
+    assert "pylon_active" in step_info
+    assert "pylon_inner_turn_risk" in step_info
 
     core.stop_mission()
     assert core.running is False

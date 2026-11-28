@@ -43,6 +43,19 @@ from src.avionics.payload_grabber import PayloadGrabberController
 from src.navigation.payload_transfer_planner import PayloadTransferPlanner
 from src.navigation.gust_alleviation import GustAlleviationController
 from src.telemetry.referee_report_generator import RefereeReportGenerator
+from src.telemetry.link_security import TelemetryLinkSecurity
+from src.navigation.pylon_navigator import PylonNavigator
+from src.simulation.monte_carlo import MonteCarloDropSimulator, MonteCarloConfig
+from src.avionics.competition_optimizer import CompetitionOptimizer, MassComponent
+from src.telemetry.crypto_link import CryptoTelemetryLink, RFMetrics
+from src.avionics.storage_box_optimizer import (
+    StorageBoxOptimizer,
+    StorageBoxSpec,
+    BoxGeometry,
+    CompetitionTeamProfile
+)
+from src.navigation.pylon_gate_monitor import PylonGateMonitor
+from src.simulation.mission_benchmark import MissionReadinessBenchmark, BenchmarkConfig
 import glob
 
 
@@ -72,7 +85,11 @@ MENU_BANNER = """
 [20] 🦾 Döner Kanat Görev 3 Bonus Yük Alma (Grabber) & Transfer
 [21] 🌪️ NASA F-Faktörü Rüzgar Kesmesi (Wind Shear) & Darbe Sönümleyici
 [22] 📑 TÜBİTAK TEKNOFEST 2026 Resmi Hakem Denetim Raporu
-[23] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
+[23] 🔐 Uçtan Uca Şifreli Telemetri & Jamming/Spoofing Koruması (Madde 9.4)
+[24] 🏁 150m Direk Dış Dönüş Güdümü & Ceza 2 Önleme Kalkanı
+[25] 🎲 Monte Carlo Balistik Dağılım (CEP50 / R95) Simülasyonu
+[26] ⚖️ Ağırlık/CG Kayması, Muhafaza Kutusu & Tablo 3 Puan Optimizasyonu
+[27] 🧪 Tüm Otomasyonel Test Paketini Çalıştır
 [0] 🚪 Çıkış
 ===========================================================================
 """
@@ -393,6 +410,120 @@ def run_referee_audit():
     print(f"[*] Telemetri SHA-256 İmzası: {audit.telemetry_hash}")
 
 
+def run_link_security():
+    print("\n🔐 Uçtan Uca Şifreli Telemetri & Jamming/Spoofing Koruması (Madde 9.4) Test Ediliyor...")
+    key = b"TEKNOFEST-2026-MALATYA-TULGA-AES"
+    tx = TelemetryLinkSecurity(master_key=key)
+    rx = TelemetryLinkSecurity(master_key=key)
+    pkt = tx.encrypt_packet({"state": "LOCKING_TARGET_A", "alt_m": 24.5, "slot": 1})
+    ok, decoded, reason = rx.decrypt_packet(pkt)
+    replay_ok, _, replay_reason = rx.decrypt_packet(pkt)
+    health = rx.evaluate_link_health(rssi_dbm=-56.0, packet_loss_pct=0.8, time_since_last_packet_s=0.1)
+    print(f"[*] Şifreleme Paketi : {len(pkt)} byte | Doğrulama: {ok} ({reason}) | Veri: {decoded}")
+    print(f"[*] Anti-Replay Testi: Tekrar Paket Reddedildi={not replay_ok} ({replay_reason})")
+    print(f"[*] Link Sağlık Durumu: {health.health_state.value} | Jamming Skoru: {health.jamming_score}")
+
+
+def run_pylon_nav():
+    print("\n🏁 150m Direk (Pylon) Dış Dönüş Güdümü & Ceza 2 Önleme Kalkanı Test Ediliyor...")
+    nav = PylonNavigator(pole_distance_m=150.0, max_bank_angle_deg=35.0)
+    turn_r = nav.compute_dynamic_turn_radius(airspeed_mps=16.0, wind_speed_mps=4.0)
+    wps = nav.generate_outer_turn_figure_eight(altitude_m=30.0, airspeed_mps=16.0, wind_speed_mps=4.0, laps=2)
+    print(f"[*] Rüzgar Kompanzasyonlu Dönüş Yarıçapı: {turn_r} m")
+    print(f"[*] 2 Tur ∞ Dış Dönüş Waypoint Sayısı   : {len(wps)} nokta (Max X={max(w[0] for w in wps)}m, Min X={min(w[0] for w in wps)}m)")
+
+
+def run_monte_carlo():
+    print("\n🎲 Monte Carlo Balistik Dağılım (CEP50 / R95) Simülasyonu Çalıştırılıyor...")
+    sim = MonteCarloDropSimulator(MonteCarloConfig(num_trials=200, category="rotary_wing", release_altitude_m=20.0))
+    res = sim.run()
+    print(f"[*] Deneme Sayısı: {res.num_trials} | Kategori: {res.category} (Çember <= {res.scoring_radius_m}m)")
+    print(f"[*] CEP50: {res.cep50_m} m | R95: {res.r95_m} m | Ortalama Hata: {res.mean_error_m} m")
+    print(f"[*] Puanlama İsabet Olasılığı: %{res.hit_probability_pct} | 2m Tam İsabet: %{res.bullseye_2m_probability_pct}")
+
+
+def run_competition_optimizer():
+    print("\n⚖️ Ağırlık/CG Kayması, Muhafaza Kutusu & Tablo 3 Puan Optimizasyonu Çalıştırılıyor...")
+    opt = CompetitionOptimizer(category="rotary_wing")
+    wb = opt.analyze_weight_and_balance([
+        MassComponent("Gövde+Aviyonik", 1.50, 0.0, 0.0, 0.0),
+        MassComponent("Batarya 4S", 0.55, 0.01, 0.0, -0.02),
+        MassComponent("Yük 1 (Kırmızı)", 0.45, 0.02, 0.03, -0.05, True, 1),
+        MassComponent("Yük 2 (Mavi)", 0.45, -0.02, -0.03, -0.05, True, 2),
+    ])
+    box = opt.audit_transport_box("rectangular_prism", (0.55, 0.55, 0.35))
+    timing = opt.audit_setup_timing(measured_setup_s=195.0, interventions_s=[])
+    print(f"[*] MTOW: {wb['full_load'].total_mass_kg} kg (Uygun={wb['full_load'].mtow_compliant}) | 1. Bırakma CG Kayması: {wb['after_drop_1'].cg_shift_from_nominal_mm} mm")
+    print(f"[*] Muhafaza Kutusu: {box.volume_liters} L (Uygun={box.is_compliant}) | Kurulum: {timing.effective_setup_s}s / 480s")
+
+
+def run_crypto_security():
+    print("\n🔐 256-bit Şifreli Telemetri & RF Güvenlik Doğrulaması (Şartname §9.4)...")
+    link = CryptoTelemetryLink()
+    sample = {"alt_agl": 32.5, "lat": 38.34694, "lon": 38.24444, "state": "SEARCHING_TARGET_A"}
+    frame = link.encrypt_payload(sample)
+    decoded = link.decrypt_frame(frame)
+    replay_blocked = link.decrypt_frame(frame) is None
+    st = link.evaluate_rf_health(RFMetrics(rssi_dbm=-56.0, noise_floor_dbm=-95.0, packet_loss_pct=0.2))
+    print(f"[*] Şifreli Paket Boyutu : {len(frame.to_bytes())} bayt (Epoch #{frame.key_epoch}, Seq #{frame.seq_num})")
+    print(f"[*] Bütünlük & Çözme     : {'BAŞARILI' if decoded == sample else 'HATA'}")
+    print(f"[*] Replay Saldırı Engeli: {'AKTİF (REDDEDİLDİ)' if replay_blocked else 'ZAYIF'}")
+    print(f"[*] RF Güvenlik Seviyesi : {st.anomaly_level.value} | SNR: {st.snr_db} dB")
+
+
+def run_box_optimizer():
+    print("\n📦 Muhafaza Kutusu Doğrulama & Tablo 3 Puan Optimizasyonu (§8.3.4 & §11.1)...")
+    opt = StorageBoxOptimizer()
+    spec = StorageBoxSpec(
+        category="rotary_wing",
+        geometry=BoxGeometry.RECTANGULAR_PRISM,
+        dim_a_m=0.60, dim_b_m=0.60, dim_c_m=0.40
+    )
+    box_res = opt.validate_storage_box(spec)
+    profile = CompetitionTeamProfile(
+        category="rotary_wing",
+        empty_mass_w0_kg=1.85,
+        single_payload_mass_kg=0.60,
+        box_volume_m3=box_res.volume_m3,
+        setup_time_s=195.0,
+        bonus_ay_pickup=True,
+        bonus_by_delivery=True
+    )
+    res = opt.optimize_team_strategy(profile)
+    print(f"[*] Kutu Uyumluluğu : {'UYGUN' if box_res.is_compliant else 'İHLAL'} | Hacim: {box_res.volume_m3:.4f} m³")
+    print(f"[*] MTOW            : {res.mtow_kg:.2f} kg / 4.00 kg ({'UYGUN' if res.mtow_compliant else 'AŞILDI'})")
+    print(f"[*] Tahmini Puan    : PG1={res.predicted_pg1:.2f} | PG2={res.predicted_pg2:.2f} | Toplam={res.predicted_total_flight_score:.2f}")
+    print(f"[*] En Verimli Kaldıraç: {res.top_engineering_lever}")
+    print(f"[*] Yük Deneme Stratejisi: {res.payload_recommendation.rationale}")
+
+
+def run_pylon_gate():
+    print("\n🚩 150m Referans Direkleri Dış Dönüş & ∞ Kapı İzleyici Testi (§8.3.1)...")
+    mon = PylonGateMonitor()
+    # 2. direk (-75, 0) etrafında dıştan dönüş simülasyonu
+    for deg in range(0, 210, 30):
+        rad = math.radians(deg)
+        x = -75.0 - 20.0 * math.sin(rad)
+        y = 20.0 * math.cos(rad)
+        st = mon.update(x, y)
+    st_scan = mon.update(0.0, 0.0)
+    print(f"[*] Uyumluluk Durumu       : {st_scan.compliance_state.value}")
+    print(f"[*] 2. Direk Dış Dönüşü    : {'DOĞRULANDI' if st_scan.pole_2_outer_turn_verified else 'BEKLENİYOR'}")
+    print(f"[*] Tarama Alanı Yetkisi   : {'AÇIK' if st_scan.vision_scan_authorized else 'KİLİTLİ'}")
+    print(f"[*] Tahmini Ceza Puanı 2   : {st_scan.estimated_penalty_2_pts:.1f} puan")
+
+
+def run_mission_benchmark():
+    print("\n🎲 Malatya Tulga Monte Carlo Yarışma Hazırlık Kıyaslaması (50 Sorti)...")
+    bench = MissionReadinessBenchmark(BenchmarkConfig(num_runs=50, category="rotary_wing"))
+    rep = bench.run()
+    print(f"[*] Tulga Hava Yoğunluğu : {rep.tulga_air_density_kgpm3:.4f} kg/m³ (938m MSL)")
+    print(f"[*] Durma Noktası CEP50  : {rep.cep50_m:.2f}m | CEP90: {rep.cep90_m:.2f}m (Limit: {rep.scoring_radius_m:.0f}m)")
+    print(f"[*] Yarıçap İçi Başarı   : %{rep.in_radius_success_rate_pct:.1f} | Rüzgar İptal Riski: %{rep.wind_abort_rate_pct:.1f}")
+    print(f"[*] Ortalama Tablo 3     : PG1={rep.mean_pg1:.2f} | PG2={rep.mean_pg2:.2f} | Toplam={rep.mean_total_flight_score:.2f}")
+    print(f"[*] Hazırlık İndeksi CRI : {rep.readiness_index_0_100:.1f}/100 ({rep.readiness_grade})")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -401,7 +532,7 @@ def run_tests():
 def interactive_menu():
     while True:
         print(MENU_BANNER)
-        choice = input("Seçiminiz [0-23]: ").strip()
+        choice = input("Seçiminiz [0-27]: ").strip()
         if choice == "1":
             run_preflight()
         elif choice == "2":
@@ -447,6 +578,14 @@ def interactive_menu():
         elif choice == "22":
             run_referee_audit()
         elif choice == "23":
+            run_link_security()
+        elif choice == "24":
+            run_pylon_nav()
+        elif choice == "25":
+            run_monte_carlo()
+        elif choice == "26":
+            run_competition_optimizer()
+        elif choice == "27":
             run_tests()
         elif choice == "0":
             print("\n👋 Güvenli uçuşlar dileriz!")
@@ -480,6 +619,14 @@ def main():
     parser.add_argument("--grabber", action="store_true", help="Döner kanat yük alma (grabber) ve transfer simülasyonunu çalıştır")
     parser.add_argument("--gust", action="store_true", help="Rüzgar darbe ve kesme sönümleyicisini test et")
     parser.add_argument("--referee-audit", action="store_true", help="Resmi hakem heyeti uçuş denetim raporu üret")
+    parser.add_argument("--link-security", action="store_true", help="Şifreli telemetri ve jamming koruma testi")
+    parser.add_argument("--pylon-nav", action="store_true", help="150m direk dış dönüş güdüm testi")
+    parser.add_argument("--monte-carlo", action="store_true", help="Monte Carlo balistik dağılım simülasyonu")
+    parser.add_argument("--competition-opt", action="store_true", help="Ağırlık/CG, kutu ve Tablo 3 puan optimizasyonu")
+    parser.add_argument("--crypto", action="store_true", help="256-bit EtM şifreli telemetri ve RF güvenlik testi")
+    parser.add_argument("--box-opt", action="store_true", help="Muhafaza kutusu doğrulama ve Tablo 3 duyarlılık optimizasyonu")
+    parser.add_argument("--pylon-gate", action="store_true", help="150m direk dış dönüş kapı ve ∞ tur izleyici testi")
+    parser.add_argument("--benchmark", action="store_true", help="Malatya Tulga Monte Carlo Yarışma Hazırlık Kıyaslaması (CRI)")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -528,6 +675,22 @@ def main():
         run_gust_alleviation()
     elif args.referee_audit:
         run_referee_audit()
+    elif args.link_security:
+        run_link_security()
+    elif args.pylon_nav:
+        run_pylon_nav()
+    elif args.monte_carlo:
+        run_monte_carlo()
+    elif args.competition_opt:
+        run_competition_optimizer()
+    elif args.crypto:
+        run_crypto_security()
+    elif args.box_opt:
+        run_box_optimizer()
+    elif args.pylon_gate:
+        run_pylon_gate()
+    elif args.benchmark:
+        run_mission_benchmark()
     elif args.test:
         run_tests()
     else:

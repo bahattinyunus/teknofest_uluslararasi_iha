@@ -29,6 +29,11 @@ from src.navigation.gust_alleviation import (
     GustCompensationOutput,
     ShearHazardLevel
 )
+from src.navigation.pylon_gate_monitor import (
+    PylonGateMonitor,
+    PylonGateStatus,
+    TurnComplianceState
+)
 
 __all__ = [
     "BallisticsCalculator",
@@ -66,5 +71,8 @@ __all__ = [
     "TransferStatus",
     "GustAlleviationController",
     "GustCompensationOutput",
-    "ShearHazardLevel"
+    "ShearHazardLevel",
+    "PylonGateMonitor",
+    "PylonGateStatus",
+    "TurnComplianceState"
 ]

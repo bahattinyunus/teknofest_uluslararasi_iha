@@ -16,6 +16,13 @@ from src.telemetry.mavlink_hil import (
 )
 from src.telemetry.debrief_engine import MissionDebriefEngine, DebriefMetrics
 from src.telemetry.referee_report_generator import RefereeReportGenerator, RefereeAuditVerification
+from src.telemetry.crypto_link import (
+    CryptoTelemetryLink,
+    EncryptedFrame,
+    RFMetrics,
+    LinkSecurityStatus,
+    RFAnomalyLevel
+)
 
 __all__ = [
     "MavlinkBridge",
@@ -35,5 +42,10 @@ __all__ = [
     "MissionDebriefEngine",
     "DebriefMetrics",
     "RefereeReportGenerator",
-    "RefereeAuditVerification"
+    "RefereeAuditVerification",
+    "CryptoTelemetryLink",
+    "EncryptedFrame",
+    "RFMetrics",
+    "LinkSecurityStatus",
+    "RFAnomalyLevel"
 ]

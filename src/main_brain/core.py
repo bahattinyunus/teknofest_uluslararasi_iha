@@ -60,6 +60,9 @@ from src.avionics.payload_grabber import PayloadGrabberController, GrabberState
 from src.navigation.payload_transfer_planner import PayloadTransferPlanner, TransferPhase
 from src.navigation.gust_alleviation import GustAlleviationController, ShearHazardLevel
 from src.telemetry.referee_report_generator import RefereeReportGenerator
+from src.telemetry.link_security import TelemetryLinkSecurity, LinkSecurityStatus
+from src.navigation.pylon_navigator import PylonNavigator, PylonGuidanceState
+from src.avionics.competition_optimizer import CompetitionOptimizer
 
 
 class ArchitectCore:
@@ -149,8 +152,14 @@ class ArchitectCore:
         self.payload_transfer_planner = PayloadTransferPlanner(grabber_controller=self.payload_grabber)
         self.gust_alleviation = GustAlleviationController()
         self.referee_report_gen = RefereeReportGenerator()
+        self.link_security = TelemetryLinkSecurity()
+        self.pylon_navigator = PylonNavigator(pole_distance_m=150.0)
+        uav_cat = self.config.get("competition", {}).get("category", "rotary_wing")
+        self.competition_optimizer = CompetitionOptimizer(category=uav_cat)
         self.latest_adc_state: Optional[AirDataState] = None
         self.latest_gust_output = None
+        self.latest_link_status: Optional[LinkSecurityStatus] = None
+        self.latest_pylon_state: Optional[PylonGuidanceState] = None
 
         self.running = False
         self.status = "HAZIR"
@@ -316,6 +325,19 @@ class ArchitectCore:
         # 6.4 Görev Playbook Orkestrasyonu
         self.latest_playbook_status = self.mission_playbook.update(
             current_uav_xyz=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m, telem.altitude_agl)
+        )
+
+        # 6.5 Şifreli Telemetri Link Bütünlüğü & 150m Direk Dış Dönüş Kalkanı
+        self.latest_link_status = self.link_security.evaluate_link_health(
+            rssi_dbm=-58.0,
+            packet_loss_pct=0.5,
+            time_since_last_packet_s=max(0.0, time.monotonic() - telem.last_packet_time)
+        )
+        self.latest_pylon_state = self.pylon_navigator.update(
+            uav_xy=(self.latest_dr_state.pos_x_m, self.latest_dr_state.pos_y_m),
+            uav_vel_xy=(telem.vx, telem.vy),
+            airspeed_mps=max(10.0, self.latest_adc_state.tas_mps),
+            wind_speed_mps=self.latest_wind.speed_mps
         )
 
         # 7. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
@@ -524,7 +546,10 @@ class ArchitectCore:
             "density_alt_m": self.latest_adc_state.density_alt_m if self.latest_adc_state else 938.0,
             "gust_f_factor": self.latest_gust_output.f_factor if self.latest_gust_output else 0.0,
             "gust_hazard": self.latest_gust_output.hazard_level.value if self.latest_gust_output else "NOMINAL",
-            "grabber_state": self.payload_grabber.state.value
+            "grabber_state": self.payload_grabber.state.value,
+            "link_security": self.latest_link_status.health_state.value if self.latest_link_status else "SECURE",
+            "pylon_active": self.latest_pylon_state.active_pylon if self.latest_pylon_state else "POLE_1",
+            "pylon_inner_turn_risk": self.latest_pylon_state.inner_turn_risk if self.latest_pylon_state else False
         }
 
     def start_mission(self):

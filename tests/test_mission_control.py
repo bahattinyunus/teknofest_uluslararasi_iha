@@ -161,3 +161,55 @@ def test_mission_control_cli_emergency_fts():
     assert res.returncode == 0
     assert "Paraşüt Kurtarma Testi" in res.stdout
     assert "Vril Tespiti" in res.stdout
+
+
+def test_mission_control_cli_link_security():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--link-security"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Şifreli Telemetri" in res.stdout
+    assert "SECURE" in res.stdout
+
+
+def test_mission_control_cli_pylon_nav():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--pylon-nav"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Dış Dönüş Güdümü" in res.stdout
+    assert "Waypoint Sayısı" in res.stdout
+
+
+def test_mission_control_cli_monte_carlo():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--monte-carlo"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Monte Carlo" in res.stdout
+    assert "CEP50" in res.stdout
+
+
+def test_mission_control_cli_competition_opt():
+    res = subprocess.run(
+        [sys.executable, "scripts/mission_control.py", "--competition-opt"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    assert res.returncode == 0
+    assert "Ağırlık/CG Kayması" in res.stdout
+    assert "Muhafaza Kutusu" in res.stdout
