@@ -49,6 +49,12 @@ from src.avionics.storage_box_optimizer import (
     PayloadTrialRecommendation,
     ScoreOptimizationResult
 )
+from src.avionics.propulsion_health import (
+    PropulsionHealthMonitor,
+    PropulsionSnapshot,
+    PropulsionHealthReport,
+    PropulsionAlertLevel
+)
 
 __all__ = [
     "FailsafeManager",
@@ -89,5 +95,9 @@ __all__ = [
     "CompetitionTeamProfile",
     "CompetitorBenchmark",
     "PayloadTrialRecommendation",
-    "ScoreOptimizationResult"
+    "ScoreOptimizationResult",
+    "PropulsionHealthMonitor",
+    "PropulsionSnapshot",
+    "PropulsionHealthReport",
+    "PropulsionAlertLevel"
 ]

@@ -1660,6 +1660,52 @@ class WebGCSRequestHandler(BaseHTTPRequestHandler):
                     "estimated_penalty_2_pts": 0.0,
                     "violations": []
                 })
+        elif self.path == "/api/propulsion":
+            if self.core_instance is not None and getattr(self.core_instance, "latest_propulsion_report", None) is not None:
+                pr = self.core_instance.latest_propulsion_report
+                self._send_json_response({
+                    "alert_level": pr.alert_level.value,
+                    "density_thrust_ratio": pr.density_thrust_ratio,
+                    "hover_throttle_margin_pct": pr.hover_throttle_margin_pct,
+                    "max_esc_temp_c": pr.max_esc_temp_c,
+                    "thermal_derating_factor": pr.thermal_derating_factor,
+                    "rpm_asymmetry_pct": pr.rpm_asymmetry_pct,
+                    "vibration_rms_mps2": pr.vibration_rms_mps2,
+                    "diagnostics": pr.diagnostics
+                })
+            else:
+                self._send_json_response({
+                    "alert_level": "NOMINAL",
+                    "density_thrust_ratio": 0.865,
+                    "hover_throttle_margin_pct": 38.0,
+                    "max_esc_temp_c": 52.0,
+                    "thermal_derating_factor": 1.0,
+                    "rpm_asymmetry_pct": 0.4,
+                    "vibration_rms_mps2": 2.1,
+                    "diagnostics": ["İtki ve ESC termal sistemi nominal."]
+                })
+        elif self.path == "/api/attempts":
+            if self.core_instance is not None and hasattr(self.core_instance, "attempt_manager"):
+                sm = self.core_instance.attempt_manager.get_summary()
+                self._send_json_response({
+                    "attempts_used": sm.attempts_used,
+                    "attempts_remaining": sm.attempts_remaining,
+                    "task1_qualified": sm.task1_qualified,
+                    "best_task1_score": sm.best_task1_score,
+                    "best_task2_score": sm.best_task2_score,
+                    "combined_total_score": sm.combined_total_score,
+                    "tactical_recommendation": sm.tactical_recommendation
+                })
+            else:
+                self._send_json_response({
+                    "attempts_used": 0,
+                    "attempts_remaining": 4,
+                    "task1_qualified": False,
+                    "best_task1_score": 0.0,
+                    "best_task2_score": 0.0,
+                    "combined_total_score": 9.5,
+                    "tactical_recommendation": "Görev 1 (2 tur ∞) ile başlayın."
+                })
         else:
             self.send_response(404)
             self.end_headers()

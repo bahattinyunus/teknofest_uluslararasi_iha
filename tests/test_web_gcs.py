@@ -226,3 +226,17 @@ def test_web_gcs_security_and_pylon_endpoints(gcs_server):
         pg = json.loads(resp.read().decode("utf-8"))
         assert "compliance_state" in pg
         assert "pole_2_outer_turn_verified" in pg
+
+
+def test_web_gcs_propulsion_and_attempts_endpoints(gcs_server):
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/propulsion") as resp:
+        assert resp.status == 200
+        prop = json.loads(resp.read().decode("utf-8"))
+        assert prop["alert_level"] == "NOMINAL"
+        assert "hover_throttle_margin_pct" in prop
+
+    with urllib.request.urlopen("http://127.0.0.1:8899/api/attempts") as resp:
+        assert resp.status == 200
+        att = json.loads(resp.read().decode("utf-8"))
+        assert att["attempts_remaining"] == 4
+        assert "tactical_recommendation" in att

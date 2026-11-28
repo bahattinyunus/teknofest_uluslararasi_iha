@@ -23,6 +23,18 @@ from src.telemetry.crypto_link import (
     LinkSecurityStatus,
     RFAnomalyLevel
 )
+from src.telemetry.attempt_manager import (
+    CompetitionAttemptManager,
+    FieldCrewRoster,
+    FlightAttemptRecord,
+    CompetitionStandingSummary,
+    AttemptStatus
+)
+from src.telemetry.flight_replayer import (
+    FlightTelemetryReplayer,
+    ReplayAuditResult,
+    ReplayAnomaly
+)
 
 __all__ = [
     "MavlinkBridge",
@@ -47,5 +59,13 @@ __all__ = [
     "EncryptedFrame",
     "RFMetrics",
     "LinkSecurityStatus",
-    "RFAnomalyLevel"
+    "RFAnomalyLevel",
+    "CompetitionAttemptManager",
+    "FieldCrewRoster",
+    "FlightAttemptRecord",
+    "CompetitionStandingSummary",
+    "AttemptStatus",
+    "FlightTelemetryReplayer",
+    "ReplayAuditResult",
+    "ReplayAnomaly"
 ]

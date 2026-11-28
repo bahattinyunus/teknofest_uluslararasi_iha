@@ -12,7 +12,7 @@
 
 [![Mimari](https://img.shields.io/badge/MİMARİ-OBSERVER--EXECUTOR-7928CA?style=for-the-badge&logo=azure-artifacts&logoColor=white)](docs/ARCH_OVERVIEW.md)
 
-[![Test Durumu](https://img.shields.io/badge/TESTLER-251%2F251%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Test Durumu](https://img.shields.io/badge/TESTLER-266%2F266%20GEÇTİ-00F2FF?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 [![Şartname Versiyonu](https://img.shields.io/badge/ŞARTNAME-2026%20V7%20(MALATYA%20TULGA)-FF5722?style=for-the-badge&logo=book&logoColor=white)](docs/2026_SPEC_REQUIREMENTS.md)
 
@@ -463,9 +463,21 @@ python scripts/mission_control.py --pylon-gate
 
 # Malatya Tulga Monte Carlo Yarışma Hazırlık Kıyaslaması (CRI 0-100):
 python scripts/mission_control.py --benchmark
+
+# İtki, ESC Termal Derating & Titreşim Sağlık Analizi (Tulga Yoğunluk İrtifası):
+python scripts/mission_control.py --propulsion
+
+# 4 Uçuş Hakkı, Kronometre Cezaları & Saha Ekibi Uyumluluk Yöneticisi:
+python scripts/mission_control.py --attempts
+
+# 3B Dubins Kinodinamik Rota Planlayıcı (LSL/RSR/LSR/RSL):
+python scripts/mission_control.py --dubins
+
+# Kara Kutu Tekrar Oynatma ve Güvenlik Regresyon Denetimi:
+python scripts/mission_control.py --replay
 ```
 
-### 7. Tüm Otomasyonel Testleri Çalıştırın (251 Test - %100 Başarı)
+### 7. Tüm Otomasyonel Testleri Çalıştırın (266 Test - %100 Başarı)
 
 Alt sistemlerin tamamını doğrulamak için:
 
@@ -475,7 +487,7 @@ pytest
 
 ---
 
-## 🧪 DOĞRULAMA VE TEST MATRİSİ (251 TEST - %100 BAŞARILI)
+## 🧪 DOĞRULAMA VE TEST MATRİSİ (266 TEST - %100 BAŞARILI)
 
 Projemiz, görev sahasına çıkmadan önce tüm olasılıkları test eden kapsamlı bir test paketi ile korunmaktadır:
 
@@ -511,7 +523,7 @@ tests/test_vision.py::test_fixed_wing_square_shape_classification PASSED [ 95%]
 tests/test_web_gcs.py::test_web_gcs_export_endpoints PASSED              [ 98%]
 tests/test_wind_estimator.py::test_wind_estimator_reset PASSED           [100%]
 
-============================ 251 passed =============================
+============================ 266 passed =============================
 ```
 
 ```

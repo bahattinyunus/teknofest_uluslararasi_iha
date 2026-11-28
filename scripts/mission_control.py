@@ -56,6 +56,10 @@ from src.avionics.storage_box_optimizer import (
 )
 from src.navigation.pylon_gate_monitor import PylonGateMonitor
 from src.simulation.mission_benchmark import MissionReadinessBenchmark, BenchmarkConfig
+from src.avionics.propulsion_health import PropulsionHealthMonitor, PropulsionSnapshot
+from src.telemetry.attempt_manager import CompetitionAttemptManager, FieldCrewRoster
+from src.navigation.dubins_planner import DubinsPathPlanner, DubinsPose
+from src.telemetry.flight_replayer import FlightTelemetryReplayer
 import glob
 
 
@@ -524,6 +528,70 @@ def run_mission_benchmark():
     print(f"[*] Hazırlık İndeksi CRI : {rep.readiness_index_0_100:.1f}/100 ({rep.readiness_grade})")
 
 
+def run_propulsion_health():
+    print("\n🔥 İtki, ESC Termal & Titreşim Sağlık Analizi (Malatya Tulga 938m MSL)...")
+    mon = PropulsionHealthMonitor()
+    rep = mon.evaluate(PropulsionSnapshot(
+        motor_rpms=[7200.0, 7240.0, 7180.0, 7210.0],
+        esc_temps_c=[62.0, 64.5, 61.0, 63.2],
+        throttle_pct=56.0,
+        air_density_kgpm3=1.06,
+        vibration_rms_mps2=3.1
+    ))
+    print(f"[*] Sağlık Seviyesi     : {rep.alert_level.value}")
+    print(f"[*] Yoğunluk İtki Oranı : {rep.density_thrust_ratio:.3f} | Hover Marjı: %{rep.hover_throttle_margin_pct:.1f}")
+    print(f"[*] Max ESC Sıcaklığı   : {rep.max_esc_temp_c:.1f}°C (Derating: {rep.thermal_derating_factor:.2f})")
+    print(f"[*] RPM Asimetrisi      : %{rep.rpm_asymmetry_pct:.2f} | Titreşim RMS: {rep.vibration_rms_mps2:.2f} m/s²")
+
+
+def run_attempt_manager():
+    print("\n🏆 4 Uçuş Hakkı, Kronometre & Saha Ekibi Uyumluluk Simülasyonu...")
+    mgr = CompetitionAttemptManager(team_name="UAV-ARCHITECT-GLOBAL", video_score=9.5)
+    mgr.set_crew_roster(FieldCrewRoster(
+        member_names=["Pilot", "YKİ Operatörü", "Teknisyen-1", "Teknisyen-2"],
+        advisor_on_field=False,
+        all_helmets_worn=True,
+        shgm_qr_verified=True
+    ))
+    mgr.record_attempt(1, setup_duration_s=185.0, prep_duration_s=120.0, flight_duration_s=94.0, raw_score=27.8)
+    mgr.record_attempt(2, setup_duration_s=195.0, prep_duration_s=130.0, flight_duration_s=162.0, raw_score=69.4)
+    sm = mgr.get_summary()
+    print(f"[*] Kullanılan / Kalan Hak : {sm.attempts_used} / {sm.attempts_remaining}")
+    print(f"[*] G1 Onayı: {'EVET' if sm.task1_qualified else 'HAYIR'} | En İyi G1={sm.best_task1_score} | En İyi G2={sm.best_task2_score}")
+    print(f"[*] Toplam Yarışma Puanı   : {sm.combined_total_score:.2f} | Saha Ekibi: {'UYGUN' if sm.crew_compliant else 'İHLAL'}")
+    print(f"[*] Taktik Öneri           : {sm.tactical_recommendation}")
+
+
+def run_dubins_planner():
+    print("\n✈️ 3B Dubins Kinodinamik Rota Planlayıcı (150m Pylon Dönüşü)...")
+    planner = DubinsPathPlanner(max_climb_angle_deg=18.0)
+    r_min = planner.compute_min_turn_radius(airspeed_mps=16.0, max_bank_deg=35.0)
+    path = planner.plan(
+        start=DubinsPose(-75.0, -25.0, 30.0, 0.0),
+        goal=DubinsPose(75.0, 25.0, 35.0, math.pi),
+        turn_radius_m=r_min,
+        step_size_m=10.0
+    )
+    print(f"[*] Min Dönüş Yarıçapı : {r_min:.2f}m (V=16m/s, Bank=35°)")
+    print(f"[*] En Kısa Dubins Tipi: {path.path_type} | 2B={path.total_length_2d_m:.1f}m | 3B={path.total_length_3d_m:.1f}m")
+    print(f"[*] Tırmanma Açısı     : {path.climb_angle_deg:.2f}° ({'UYGUN' if path.glide_slope_feasible else 'AŞILDI'}) | Nokta Sayısı: {len(path.samples)}")
+
+
+def run_flight_replayer():
+    print("\n⏪ Kara Kutu Tekrar Oynatma ve Regresyon Denetimi...")
+    replayer = FlightTelemetryReplayer()
+    sample_rows = [
+        {"timestamp": 0.0, "altitude_agl": 0.0, "ground_speed": 0.0, "vz": 0.0, "battery_v": 16.4, "payloads_left": 2},
+        {"timestamp": 10.0, "altitude_agl": 32.0, "ground_speed": 14.5, "vz": 0.0, "battery_v": 15.9, "payloads_left": 2},
+        {"timestamp": 25.0, "altitude_agl": 20.0, "ground_speed": 12.0, "vz": 0.5, "battery_v": 15.6, "payloads_left": 1},
+        {"timestamp": 45.0, "altitude_agl": 20.0, "ground_speed": 12.5, "vz": 0.2, "battery_v": 15.3, "payloads_left": 0},
+        {"timestamp": 60.0, "altitude_agl": 0.0, "ground_speed": 0.0, "vz": 1.2, "battery_v": 15.1, "payloads_left": 0},
+    ]
+    res = replayer.replay_rows(sample_rows, source_name="tulga_regression_sample")
+    print(f"[*] Regresyon Durumu : {'GEÇTİ' if res.passed_regression else 'BAŞARISIZ'} (Kritik={res.critical_count}, Uyarı={res.warning_count})")
+    print(f"[*] Max İrtifa: {res.max_altitude_agl_m}m | Min Batarya: {res.min_battery_v}V | Bırakılan Yük: {res.payloads_released}")
+
+
 def run_tests():
     print("\n🧪 Test paketi yürütülüyor...")
     os.system("pytest -v")
@@ -627,6 +695,10 @@ def main():
     parser.add_argument("--box-opt", action="store_true", help="Muhafaza kutusu doğrulama ve Tablo 3 duyarlılık optimizasyonu")
     parser.add_argument("--pylon-gate", action="store_true", help="150m direk dış dönüş kapı ve ∞ tur izleyici testi")
     parser.add_argument("--benchmark", action="store_true", help="Malatya Tulga Monte Carlo Yarışma Hazırlık Kıyaslaması (CRI)")
+    parser.add_argument("--propulsion", action="store_true", help="İtki, ESC termal ve titreşim sağlık analizi")
+    parser.add_argument("--attempts", action="store_true", help="4 uçuş hakkı ve saha operasyon yöneticisi testi")
+    parser.add_argument("--dubins", action="store_true", help="3B Dubins kinodinamik rota planlayıcı testi")
+    parser.add_argument("--replay", action="store_true", help="Kara kutu tekrar oynatma ve regresyon denetimi")
     parser.add_argument("--test", action="store_true", help="Pytest testlerini çalıştır")
 
     args = parser.parse_args()
@@ -691,6 +763,14 @@ def main():
         run_pylon_gate()
     elif args.benchmark:
         run_mission_benchmark()
+    elif args.propulsion:
+        run_propulsion_health()
+    elif args.attempts:
+        run_attempt_manager()
+    elif args.dubins:
+        run_dubins_planner()
+    elif args.replay:
+        run_flight_replayer()
     elif args.test:
         run_tests()
     else:

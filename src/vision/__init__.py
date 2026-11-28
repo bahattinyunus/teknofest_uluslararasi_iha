@@ -21,6 +21,10 @@ from src.vision.multi_target_fusion import (
     FusedTargetTrack,
     TrackStatus
 )
+from src.vision.optical_flow_odometry import (
+    OpticalFlowOdometry,
+    OpticalFlowEstimate
+)
 
 __all__ = [
     "VisionDetector",
@@ -39,5 +43,7 @@ __all__ = [
     "TrackedTarget",
     "MultiTargetFusionTracker",
     "FusedTargetTrack",
-    "TrackStatus"
+    "TrackStatus",
+    "OpticalFlowOdometry",
+    "OpticalFlowEstimate"
 ]

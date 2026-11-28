@@ -63,6 +63,11 @@ from src.telemetry.referee_report_generator import RefereeReportGenerator
 from src.telemetry.link_security import TelemetryLinkSecurity, LinkSecurityStatus
 from src.navigation.pylon_navigator import PylonNavigator, PylonGuidanceState
 from src.avionics.competition_optimizer import CompetitionOptimizer
+from src.avionics.propulsion_health import PropulsionHealthMonitor, PropulsionSnapshot, PropulsionHealthReport
+from src.telemetry.attempt_manager import CompetitionAttemptManager
+from src.navigation.dubins_planner import DubinsPathPlanner
+from src.vision.optical_flow_odometry import OpticalFlowOdometry, OpticalFlowEstimate
+from src.telemetry.flight_replayer import FlightTelemetryReplayer
 
 
 class ArchitectCore:
@@ -156,10 +161,17 @@ class ArchitectCore:
         self.pylon_navigator = PylonNavigator(pole_distance_m=150.0)
         uav_cat = self.config.get("competition", {}).get("category", "rotary_wing")
         self.competition_optimizer = CompetitionOptimizer(category=uav_cat)
+        self.propulsion_monitor = PropulsionHealthMonitor()
+        self.attempt_manager = CompetitionAttemptManager()
+        self.dubins_planner = DubinsPathPlanner()
+        self.optical_flow = OpticalFlowOdometry()
+        self.flight_replayer = FlightTelemetryReplayer()
         self.latest_adc_state: Optional[AirDataState] = None
         self.latest_gust_output = None
         self.latest_link_status: Optional[LinkSecurityStatus] = None
         self.latest_pylon_state: Optional[PylonGuidanceState] = None
+        self.latest_propulsion_report: Optional[PropulsionHealthReport] = None
+        self.latest_optical_flow: Optional[OpticalFlowEstimate] = None
 
         self.running = False
         self.status = "HAZIR"
@@ -216,12 +228,17 @@ class ArchitectCore:
             print("[CORE] UYARI: DÖNÜŞÜ OLMAYAN NOKTA (PNR) ENERJİ SINIRINA ULAŞILDI! RTL TETİKLENİYOR.")
             self.comms.trigger_rtl()
 
-        # 4. Dead Reckoning Navigasyon (GPS Kesintisi Yedekliliği)
+        # 4. Dead Reckoning Navigasyon (GPS Kesintisi Yedekliliği + Gerçek Optik Akış)
+        flow_xy = (
+            (self.latest_optical_flow.flow_rad_s_x, self.latest_optical_flow.flow_rad_s_y)
+            if (self.latest_optical_flow and self.latest_optical_flow.valid)
+            else (0.0, 0.0)
+        )
         self.latest_dr_state = self.dead_reckoning.update(
             gps_pos_xy=(0.0, 0.0),
             gps_vel_xy=(telem.vx, telem.vy),
             satellites_visible=telem.satellites_visible,
-            flow_rad_s_xy=(0.0, 0.0),
+            flow_rad_s_xy=flow_xy,
             altitude_agl_m=telem.altitude_agl,
             body_accel_xy=(0.0, 0.0),
             heading_deg=telem.heading_deg
@@ -340,11 +357,31 @@ class ArchitectCore:
             wind_speed_mps=self.latest_wind.speed_mps
         )
 
+        # 6.6 İtki, ESC Termal ve Titreşim Sağlık İzleme (Tulga Yoğunluk İrtifası)
+        rho_tulga = self.latest_adc_state.air_density_kgpm3 if self.latest_adc_state else 1.06
+        nom_rpm = 7200.0 if telem.altitude_agl > 1.0 else 1200.0
+        self.latest_propulsion_report = self.propulsion_monitor.evaluate(
+            PropulsionSnapshot(
+                motor_rpms=[nom_rpm, nom_rpm + 25.0, nom_rpm - 20.0, nom_rpm + 10.0],
+                esc_temps_c=[52.0, 53.5, 51.8, 52.7],
+                throttle_pct=54.0 if telem.altitude_agl > 1.0 else 0.0,
+                air_density_kgpm3=rho_tulga,
+                vibration_rms_mps2=2.4,
+                bus_current_a=curr_amps,
+                timestamp=telem.last_packet_time
+            )
+        )
+
         # 7. Kamera Görüntüsünü Al ve Hedef Tespiti Yap
         ret, frame = self.camera.read_frame()
         detections = []
         if ret and frame is not None:
             self.latest_lighting_metrics = self.adaptive_vision.analyze_lighting(frame)
+            self.latest_optical_flow = self.optical_flow.update(
+                frame=frame,
+                altitude_agl_m=max(1.0, telem.altitude_agl),
+                dt_s=0.05
+            )
             detections = self.detector.detect(frame)
 
         # Hangi hedefin arandığını belirle
@@ -549,7 +586,11 @@ class ArchitectCore:
             "grabber_state": self.payload_grabber.state.value,
             "link_security": self.latest_link_status.health_state.value if self.latest_link_status else "SECURE",
             "pylon_active": self.latest_pylon_state.active_pylon if self.latest_pylon_state else "POLE_1",
-            "pylon_inner_turn_risk": self.latest_pylon_state.inner_turn_risk if self.latest_pylon_state else False
+            "pylon_inner_turn_risk": self.latest_pylon_state.inner_turn_risk if self.latest_pylon_state else False,
+            "propulsion_alert": self.latest_propulsion_report.alert_level.value if self.latest_propulsion_report else "NOMINAL",
+            "hover_throttle_margin_pct": self.latest_propulsion_report.hover_throttle_margin_pct if self.latest_propulsion_report else 45.0,
+            "max_esc_temp_c": self.latest_propulsion_report.max_esc_temp_c if self.latest_propulsion_report else 45.0,
+            "optical_flow_valid": self.latest_optical_flow.valid if self.latest_optical_flow else False
         }
 
     def start_mission(self):

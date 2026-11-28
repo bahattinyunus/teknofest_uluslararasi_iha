@@ -34,6 +34,11 @@ from src.navigation.pylon_gate_monitor import (
     PylonGateStatus,
     TurnComplianceState
 )
+from src.navigation.dubins_planner import (
+    DubinsPathPlanner,
+    DubinsPose,
+    DubinsPath
+)
 
 __all__ = [
     "BallisticsCalculator",
@@ -74,5 +79,8 @@ __all__ = [
     "ShearHazardLevel",
     "PylonGateMonitor",
     "PylonGateStatus",
-    "TurnComplianceState"
+    "TurnComplianceState",
+    "DubinsPathPlanner",
+    "DubinsPose",
+    "DubinsPath"
 ]
